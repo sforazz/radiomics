@@ -6,7 +6,7 @@ import os
 class DicomConverters():
 
     def __init__(self, dicom, ext='.nrrd'):
-
+        print ('Starting conversion of {0} from DICOM to NRRD...'.format(dicom.split('/')[-1]))
         self.dicom_file = dicom
         path, filename, _ = split_filename(dicom)
         self.outname = os.path.join(path, filename)+ext
@@ -18,3 +18,5 @@ class DicomConverters():
                 "'{0}', returnNode=True)[1]; slicer.util.saveNode(node, '{1}'); exit()"+'"')
                 .format(self.dicom_file, self.outname))
         sp.check_output(cmd, shell=True)
+        
+        return self.outname
