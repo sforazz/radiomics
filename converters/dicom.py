@@ -6,7 +6,7 @@ import os
 class DicomConverters():
 
     def __init__(self, dicom, ext='.nrrd'):
-        print ('Starting conversion of {0} from DICOM to NRRD...'.format(dicom.split('/')[-1]))
+        print ('\nStarting conversion of {0} from DICOM to NRRD...\n'.format(dicom.split('/')[-1]))
         self.dicom_file = dicom
         path, filename, _ = split_filename(dicom)
         self.outname = os.path.join(path, filename)+ext

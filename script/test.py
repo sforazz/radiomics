@@ -1,18 +1,22 @@
 from converters.dicom import DicomConverters
-from utils.filemanip import mouse_ct_data_preparation
+from utils.filemanip import mouse_lung_data_preparation, batch_processing
 import os
 from features.features_calculation import FeaturesCalc
 
 
-ct_folder = '/home/fsforazz/Desktop/PhD_project/fibrosis_project/Tr6_19w_CT/Tr6_20W_1/TR6_20WK_RT2_RT alone/TR6_20WK_RT2_RADIATION_ALONE'
-masks_path = '/home/fsforazz/Desktop/PhD_project/fibrosis_project/analyzed data/RT/RT_2/'
-filename = mouse_ct_data_preparation(ct_folder)
+input_data = '/home/fsforazz/Desktop/PhD_project/fibrosis_project/input_data.xlsx'
+root_path = '/home/fsforazz/Desktop/PhD_project/fibrosis_project'
 
-converter = DicomConverters(filename)
-converted_ct = converter.slicer_converter()
+raw_data, mask_paths = batch_processing(input_data, root=root_path)
 
-for mask in os.listdir(masks_path):
-    features = FeaturesCalc(converted_ct, os.path.join(masks_path, mask))
-    features.mitk()
+for i, raw_data_folder in enumerate(raw_data):
+    filename = mouse_lung_data_preparation(raw_data_folder)
+    
+    converter = DicomConverters(filename)
+    converted_data = converter.slicer_converter()
+    
+    for mask in os.listdir(mask_paths[i]):
+        features = FeaturesCalc(converted_data, os.path.join(mask_paths[i], mask))
+        features.mitk()
 
 print 'Done!'
