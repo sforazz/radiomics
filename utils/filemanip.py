@@ -44,7 +44,7 @@ def split_filename(fname):
     return pth, fname, ext
 
 
-def mouse_lung_data_preparation(raw_data):
+def mouse_lung_data_preparation(raw_data, temp_dir):
     """Function to arrange the mouse lung data into a proper struture.
     In particular, this function will look into each raw_data folder searching for
     the data with H50s in the series description field in the DICOM header. Then,
@@ -70,13 +70,16 @@ def mouse_lung_data_preparation(raw_data):
     else:
         ext = '.IMA'
     
+    if not os.path.isdir(temp_dir):
+        os.mkdir(temp_dir)
+    basename = raw_data.split('/')[-1]
     sequence_numbers = list(set([x.split('.')[-11] for x in dicoms]))
     data_folders = []  # I will use this to store the sequence number of the CT data to convert
     for n_seq in sequence_numbers:                     
         dicom_vols = [x for x in dicoms if n_seq in x.split('.')[-11]]
         dcm_hd = pydicom.read_file(dicom_vols[0])
         if len(dicom_vols) > 1 and '50s' in dcm_hd.SeriesDescription:
-            folder_name = raw_data+'/Sequence_{}'.format(n_seq)
+            folder_name = temp_dir+'/{0}_Sequence_{1}'.format(basename, n_seq)
             if not os.path.isdir(folder_name):
                 os.mkdir(folder_name)
                 for x in dicom_vols:

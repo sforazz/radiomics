@@ -20,3 +20,18 @@ class DicomConverters():
         sp.check_output(cmd, shell=True)
         
         return self.outname
+
+    def mitk_converter(self):
+        
+        dicom_folder, _, _ = split_filename(self.dicom_file)
+        try:
+            cmd = ("MitkCLDicom2Nrrd -i '{0}' -o '{1}'".format(dicom_folder, self.outname))
+            sp.check_output(cmd, shell=True, stderr=sp.STDOUT)
+        except sp.CalledProcessError as e:
+            print ("command '{}' return with error (code {}): {}"
+                   .format(e.cmd, e.returncode, e.output))
+            print ("If the DICOM to NRRD conversion gave you the segmentation fault error, do not "
+                   "panic. Usually it gives that error after the conversion so you should have "
+                   "your converted data. I do not know why this happens yet.")
+        
+        return self.outname
