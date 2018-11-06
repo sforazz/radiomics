@@ -9,8 +9,8 @@ def cropping(image, mask):
     imagePath, imageFilename, imageExt = split_filename(image)
     imageOutname = os.path.join(imagePath, imageFilename+'_cropped')+imageExt
     
-    maskPath, maskFilename, maskExt = split_filename(mask)
-    maskOutname = os.path.join(maskPath, maskFilename+'_cropped')+maskExt
+    _, maskFilename, maskExt = split_filename(mask)
+    maskOutname = os.path.join(imagePath, maskFilename+'_cropped')+maskExt
     
     maskData, maskHD = nrrd.read(mask)
     imageData, imageHD = nrrd.read(image)
