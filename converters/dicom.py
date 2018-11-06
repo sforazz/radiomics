@@ -23,7 +23,10 @@ class DicomConverters():
 
     def mitk_converter(self):
         
-        dicom_folder, _, _ = split_filename(self.dicom_file)
+        if os.path.isdir(self.dicom_file):
+            dicom_folder = self.dicom_file
+        else:
+            dicom_folder, _, _ = split_filename(self.dicom_file)
         try:
             cmd = ("MitkCLDicom2Nrrd -i '{0}' -o '{1}'".format(dicom_folder, self.outname))
             sp.check_output(cmd, shell=True, stderr=sp.STDOUT)

@@ -4,6 +4,7 @@ import shutil
 import glob
 import pydicom
 import pandas as pd
+import numpy as np
 
 
 ALLOWED_EXT = ['.xlsx', '.csv']
@@ -128,4 +129,45 @@ def batch_processing(input_data, root=''):
         raw_data = [os.path.join(root, str(x)) for x in list(files['subjects'])] 
 
         return raw_data, masks
-        
+
+
+def dcm_info(dcm_folder):
+    
+    dicoms = sorted(glob.glob(dcm_folder+'/*.dcm'))
+    if not dicoms:
+        dicoms = sorted(glob.glob(dcm_folder+'/*.IMA'))
+        if not dicoms:
+            raise Exception('No DICOM files found in {}'.format(dcm_folder))
+    ImageTypes = []
+    SeriesNums = []
+    toRemove = []
+    for dcm in dicoms:
+        header = pydicom.read_file(dcm)
+        try:
+            ImageTypes.append(tuple(header.ImageType))
+            SeriesNums.append(header.SeriesNumber)
+        except AttributeError:
+            print ('{} seems to do not have the right DICOM fields and '
+                   'will be removed from the folder'.format(dcm))
+            toRemove.append(dcm)
+    if toRemove:
+        for f in toRemove:
+            dicoms.remove(f)
+    
+    return dicoms, list(set(ImageTypes)), list(set(SeriesNums))
+
+
+def dcm_check(dicoms, im_types, series_nums):
+    
+    if len(im_types) > 1:
+        im_type = list([x for x in im_types if not
+                        'PROJECTION IMAGE' in x][0])
+
+        dcms = [x for x in dicoms if pydicom.read_file(x).ImageType==im_type]
+    elif len(series_nums) > 1:
+        series_num = np.max(series_nums)
+        dcms = [x for x in dicoms if pydicom.read_file(x).SeriesNumber==series_num]
+    else:
+        dcms = dicoms
+    
+    return dcms
