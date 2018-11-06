@@ -18,7 +18,7 @@ for i, raw_data_folder in enumerate(raw_data):
     converted_data = converter.mitk_converter()
     
     for mask in os.listdir(mask_paths[i]):
-        features = FeaturesCalc(converted_data, os.path.join(mask_paths[i], mask))
+        features = FeaturesCalc(converted_data, os.path.join(mask_paths[i], mask), crop=True)
         features.mitk()
 
 print 'Done!'
