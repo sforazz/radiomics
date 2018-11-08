@@ -18,13 +18,26 @@ class FeaturesCalc():
     
     def mitk(self):
     
+        cmd = ('MitkCLGlobalImageFeatures -i "{0}" -m "{1}" -o MITK_features_calculation.csv '
+               '-header -fo -ivoh -loci -vol -volden -cooc2 -ngld -rl -id -ngtd'
+               .format(self.raw_data, self.mask))
+        print(cmd)
+        out = sp.Popen(cmd, shell=True)
+        timeout = []
         try:
-            cmd = ('MitkCLGlobalImageFeatures -i "{0}" -m "{1}" -o MITK_features_calculation.csv '
-                   '-header -fo -ivoh -loci -vol -volden -cooc2 -ngld -rl -id -ngtd'
-                   .format(self.raw_data, self.mask))
-            sp.check_output(cmd, shell=True, stderr=sp.STDOUT)
-        except sp.CalledProcessError as e:
-            print ("command '{}' return with error (code {}): {}"
-                   .format(e.cmd, e.returncode, e.output))
-            print ('\nUnable to process subject {0} with mask {1}. Please check.'
-                   .format(self.raw_data, self.mask))
+            (res, err) = out.communicate(timeout=360)
+        except sp.TimeoutExpired:
+            timeout.append([self.raw_data, self.mask])
+            out.kill()
+            (res, err) = out.communicate(timeout=360)
+        
+        if timeout:
+            with open('Analysis_report.txt', 'w') as f:
+                for el in timeout:
+                    f.write('Subject {0} with mask {1} took more than 360s to process and '
+                            'was killed and restarted.'.format(el[0], el[1]))    
+#         except sp.CalledProcessError as e:
+#             print ("command '{}' return with error (code {}): {}"
+#                    .format(e.cmd, e.returncode, e.output))
+#             print ('\nUnable to process subject {0} with mask {1}. Please check.'
+#                    .format(self.raw_data, self.mask))

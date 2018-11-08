@@ -31,4 +31,4 @@ for sub in subjects:
         converter = DicomConverters(dirName)
         converted_data = converter.mitk_converter()
         
-print 'Done!'
+print('Done!')
