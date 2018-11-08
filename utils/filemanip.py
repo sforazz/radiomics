@@ -5,6 +5,7 @@ import glob
 import pydicom
 import pandas as pd
 import numpy as np
+from operator import itemgetter
 
 
 ALLOWED_EXT = ['.xlsx', '.csv']
@@ -154,16 +155,22 @@ def dcm_info(dcm_folder):
             raise Exception('No DICOM files found in {}'.format(dcm_folder))
     ImageTypes = []
     SeriesNums = []
+    AcqTimes = []
     toRemove = []
     for dcm in dicoms:
         header = pydicom.read_file(dcm)
         try:
             ImageTypes.append(tuple(header.ImageType))
             SeriesNums.append(header.SeriesNumber)
+            AcqTimes.append(header.AcquisitionTime) 
         except AttributeError:
             print ('{} seems to do not have the right DICOM fields and '
                    'will be removed from the folder'.format(dcm))
             toRemove.append(dcm)
+    if len(AcqTimes) == 2*(len(set(AcqTimes))):
+        sortedAcqTm = sorted(zip(dicoms, AcqTimes), key=itemgetter(1))
+        uniqueAcqTms = [x[0] for x in sortedAcqTm[:][0:-1:2]]
+        toRemove = toRemove+uniqueAcqTms
     if toRemove:
         for f in toRemove:
             dicoms.remove(f)
