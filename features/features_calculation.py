@@ -25,14 +25,15 @@ class FeaturesCalc():
         out = sp.Popen(cmd, shell=True)
         timeout = []
         try:
-            (res, err) = out.communicate(timeout=360)
+            (res, err) = out.communicate()
         except sp.TimeoutExpired:
             timeout.append([self.raw_data, self.mask])
             out.kill()
-            (res, err) = out.communicate(timeout=360)
+            out = sp.Popen(cmd, shell=True)
+            (res, err) = out.communicate(timeout=500)
         
         if timeout:
-            with open('Analysis_report.txt', 'w') as f:
+            with open('Analysis_report.txt', 'a') as f:
                 for el in timeout:
                     f.write('Subject {0} with mask {1} took more than 360s to process and '
                             'was killed and restarted.'.format(el[0], el[1]))    
