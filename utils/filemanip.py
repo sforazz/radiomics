@@ -9,7 +9,7 @@ from operator import itemgetter
 
 
 ALLOWED_EXT = ['.xlsx', '.csv']
-
+ILLEGAL_CHARACTERS = ['/', '(', ')', '[', ']', '{', '}', ' ', '-']
 
 def split_filename(fname):
     """Split a filename into parts: path, base filename and extension.
@@ -76,6 +76,8 @@ def mouse_lung_data_preparation(raw_data, temp_dir):
         os.mkdir(temp_dir)
     basename = raw_data.split('/')[-1]
     sequence_numbers = list(set([x.split('.')[-11] for x in dicoms]))
+    for character in ILLEGAL_CHARACTERS:
+        basename = basename.replace(character, '_')
     data_folders = []  # I will use this to store the sequence number of the CT data to convert
     for n_seq in sequence_numbers:                     
         dicom_vols = [x for x in dicoms if n_seq in x.split('.')[-11]]
@@ -95,7 +97,7 @@ def mouse_lung_data_preparation(raw_data, temp_dir):
                ' only the first one ({2}) will be used. Please check if this is correct.'
                .format(len(data_folders), raw_data, data_folders[0]))
 
-    return sorted(glob.glob(data_folders[0]+'/*{}'.format(ext)))[0]
+    return sorted(glob.glob(data_folders[0]+'/*{}'.format(ext)))[0], folder_name
 
 
 def batch_processing(input_data, root=''):
