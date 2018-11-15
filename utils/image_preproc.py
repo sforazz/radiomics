@@ -4,10 +4,13 @@ from utils.filemanip import split_filename
 import os
 
 
-def cropping(image, mask):
+def cropping(image, mask, prefix=None):
     
     imagePath, imageFilename, imageExt = split_filename(image)
-    imageOutname = os.path.join(imagePath, imageFilename+'_cropped')+imageExt
+    if prefix is None:
+        imageOutname = os.path.join(imagePath, imageFilename+'_cropped')+imageExt
+    else:
+        imageOutname = os.path.join(imagePath, prefix+'_cropped')+imageExt
     
     _, maskFilename, maskExt = split_filename(mask)
     maskOutname = os.path.join(imagePath, maskFilename+'_cropped')+maskExt
