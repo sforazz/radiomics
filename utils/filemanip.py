@@ -86,8 +86,14 @@ def mouse_lung_data_preparation(raw_data, temp_dir):
             folder_name = temp_dir+'/{0}_Sequence_{1}'.format(basename, n_seq)
             if not os.path.isdir(folder_name):
                 os.mkdir(folder_name)
-                for x in dicom_vols:
+            else:
+                shutil.rmtree(folder_name)
+                os.mkdir(folder_name)
+            for x in dicom_vols:
+                try:
                     shutil.copy2(x, folder_name)
+                except:
+                    continue
             data_folders.append(folder_name)
     if not data_folders:
         raise Exception('No CT data with name containing "H50s" were found in {}'

@@ -5,7 +5,7 @@ import os
 
 
 def cropping(image, mask, prefix=None):
-    
+    print('\nStarting raw data and mask cropping...')
     imagePath, imageFilename, imageExt = split_filename(image)
     if prefix is None:
         imageOutname = os.path.join(imagePath, imageFilename+'_cropped')+imageExt
@@ -29,5 +29,5 @@ def cropping(image, mask, prefix=None):
     
     nrrd.write(imageOutname, croppedImage, header=imageHD)
     nrrd.write(maskOutname, croppedMask, header=maskHD)
-    
+    print('Cropping done!\n')
     return imageOutname, maskOutname
