@@ -1,15 +1,17 @@
 import subprocess as sp
 from utils.filemanip import split_filename
 import os
+import glob
 
 
 class DicomConverters():
 
-    def __init__(self, dicom, ext='.nrrd'):
+    def __init__(self, dicom, ext='.nrrd', clean=False):
         print ('\nStarting conversion of {0} from DICOM to NRRD...\n'.format(dicom.split('/')[-1]))
         self.dicom_file = dicom
         path, filename, _ = split_filename(dicom)
         self.outname = os.path.join(path, filename)+ext
+        self.clean = clean
 
 
     def slicer_converter(self):
@@ -36,5 +38,12 @@ class DicomConverters():
             print ("If the DICOM to NRRD conversion gave you the segmentation fault error, do not "
                    "panic. Usually it gives that error after the conversion so you should have "
                    "your converted data. I do not know why this happens yet.")
+        if self.clean:
+            toDelete = glob.glob(dicom_folder+'/*.IMA')
+            if not toDelete:
+                toDelete = glob.glob(dicom_folder+'/*.dcm')
+            if toDelete:
+                for f in toDelete:
+                    os.remove(f)
         
         return self.outname
