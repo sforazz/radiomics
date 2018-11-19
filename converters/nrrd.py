@@ -14,7 +14,7 @@ class NrrdConverters():
         if outname is None:
             self.outname = os.path.join(path, filename)+ext
         else:
-            self.outname = outname
+            self.outname = outname+ext
     
     def nrrd2nifti(self):
         
