@@ -5,9 +5,6 @@ from skimage.draw import polygon
 import nrrd
 
 
-CONTOUR_TO_SAVE = ['GTV', 'CTV', 'PTV']
-
-
 def read_structure(structure):
     contours = []
     for i in range(len(structure.ROIContourSequence)):
@@ -45,13 +42,10 @@ def get_mask(con, slices, image):
     return label
 
 
-data_path = "/home/fsforazz/Desktop/test_dcm2nrrd"
-patients = [os.path.join(data_path, name)
-for name in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, name))]
+def export_RTS(patient, contours2extract=['GTV', 'CTV', 'PTV']):
 
-for patient in patients:
     reference = os.path.join(patient, 'BPLCT.nrrd')
-    ref_data, ref_hd = nrrd.read(reference)
+    _, ref_hd = nrrd.read(reference)
     dcms = glob.glob(os.path.join(patient, "BPLCT", "*.dcm"))
     structCT = glob.glob(os.path.join(patient, "RTPLAN", "RTSTRUCT_*.dcm"))[0]
     
@@ -60,9 +54,16 @@ for patient in patients:
     slices = [pydicom.read_file(dcm) for dcm in dcms]
     slices.sort(key = lambda x: float(x.ImagePositionPatient[2]))
     image = np.stack([s.pixel_array for s in slices], axis=-1)
+    processed = []
     for con in contours:
-        if con['name'] in CONTOUR_TO_SAVE:
+        if con['name'] in contours2extract:
+            print('Extracting {} from the RT Structure set...'.format(con['name']))
             label = get_mask(con, slices, image)
             nrrd.write(os.path.join(patient, con['name']+'.nrrd'), label, header=ref_hd)
-
-print('Done!')
+            processed.append(con['name'])
+    if len(contours2extract) != len(processed):
+        missing = [x for x in contours2extract if x not in processed]
+    else:
+        missing = []
+    
+    return missing

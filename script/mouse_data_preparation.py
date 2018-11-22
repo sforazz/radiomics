@@ -6,6 +6,7 @@ import argparse
 from utils.image_preproc import cropping
 import shutil
 from converters.nrrd import NrrdConverters
+import glob
 
 
 def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False, clean=False,
@@ -38,12 +39,20 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
                                                prefix=prefix)
                         sizes.append(size)
                         if nifti_path is not None:
-                            z = z+1
+                            if os.path.isdir(nifti_path):
+                                imgs = glob.glob(nifti_path+'/*.nii*')
+                                if imgs:
+                                    z = len(imgs)/2
+                                else:
+                                    z = 1
+                            else:
+                                os.mkdir(nifti_path)
                             outnames = ['Mouse_{}', 'Mask_{}']
                             for k, f in enumerate([image, mask]):
                                 outname = os.path.join(nifti_path, outnames[k].format(str(z).zfill(5)))
                                 nrrd2nifti = NrrdConverters(f, outname=outname)
                                 nrrd2nifti.nrrd2nifti()
+                            z = z+1
                         shutil.move(image, new_folder)
                         shutil.move(mask, new_folder)
                     else:

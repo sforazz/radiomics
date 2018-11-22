@@ -4,7 +4,7 @@ from utils.filemanip import split_filename
 import os
 
 
-def cropping(image, mask, prefix=None, size=[86, 80, 86]):
+def cropping(image, mask, prefix=None, size=[86, 86, 86]):
 
     print('\nStarting raw data and mask cropping...')
     imagePath, imageFilename, imageExt = split_filename(image)
