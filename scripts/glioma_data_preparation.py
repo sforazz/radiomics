@@ -1,8 +1,8 @@
 import glob
-from utils.filemanip import dcm_info, dcm_check
+from radiomics.utils.filemanip import dcm_info, dcm_check
 import os
 import shutil
-from converters.dicom import DicomConverters
+from radiomics.converters.dicom import DicomConverters
 import re
 import argparse
 
