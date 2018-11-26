@@ -6,7 +6,6 @@ import avid.common.workflow as workflow
 from avid.selectors import ActionTagSelector as ATS
 from avid.actions.mapR import mapRBatchAction as mapR
 from avid.actions.matchR import matchRBatchAction as matchR
-from avid.actions.invertR import invertRBatchAction as invertR
 from avid.actions.threadingScheduler import ThreadingScheduler
 from avid.actions.voxelizer import VoxelizerBatchAction as voxelizer
 from avid.actions.CLGlobalFeatures import FeatureExtractionBatchAction as feature_extraction
@@ -53,15 +52,11 @@ for i in range(2):
         MovingImageSelector = ATS('PlanningMRI')
         reg_actionTag = 'PMRI2CT'
         map_actionTag = 'mapped_PMRI'
-        invert_actionTag = 'invert_PMRI'
-        gtv_actionTag = 'mapped_GTV2PMRI'
         feature_actionTag = 'feature_ext_PMRI'
     elif i == 1:
         MovingImageSelector = ATS('FUMRI')
         reg_actionTag = 'FUMRI2CT'
         map_actionTag = 'mapped_FUMRI'
-        invert_actionTag = 'invert_FUMRI'
-        gtv_actionTag = 'mapped_GTV2FUMRI'
         feature_actionTag = 'feature_ext_FUMRI'
 
     with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
@@ -74,21 +69,12 @@ for i in range(2):
             MovingImageSelector, reg_Selector, ReferenceImageSelector, actionTag=map_actionTag,
             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
         
-        invertR_selector = invertR(
-            reg_Selector, actionTag=invert_actionTag,
-            scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-        
         voxelizer_selector = voxelizer(
             VoxelizerStructSelector, VoxelizerRefSelector, structNames = structures,
             booleanMask = True, actionTag='voxelizer',
             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-
-        mapped_inverse_selector = mapR(
-            voxelizer_selector, invertR_selector, MovingImageSelector, interpolator = "nn",
-            actionTag=gtv_actionTag,
-            scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
         
         feature_Selector = feature_extraction(
-            MovingImageSelector, mapped_inverse_selector, features=features, resampling=resampling,
+            mapped_moving_selector, voxelizer_selector, features=features, resampling=resampling,
             actionTag=feature_actionTag,
             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
