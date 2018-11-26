@@ -1,0 +1,52 @@
+__author__ = 'fsforazz'
+
+import os
+import argparse
+
+from avid.common.artefact.crawler import DirectoryCrawler
+import avid.common.artefact.defaultProps as artefactProps
+from avid.common.artefact.generator import generateArtefactEntry
+from avid.common.artefact.fileHelper import saveArtefactList_xml as saveArtefactList
+from avid.common.artefact import similarityRelevantProperties
+
+similarityRelevantProperties.append('sequence')
+
+
+def fileFunction(pathParts, fileName, fullPath):
+    '''Functor to generate an artefact for a file stored with the BAT project
+    storage conventions.'''
+    result = None
+    name, ext = os.path.splitext(fileName)
+    case = pathParts[0] #first dir is case id
+
+    if ext=='.nrrd':
+        result = generateArtefactEntry(case, None, 0, name, artefactProps.TYPE_VALUE_RESULT,
+                                       artefactProps.FORMAT_VALUE_ITK, fullPath)
+    elif ext=='.dcm':
+        if pathParts[-1] == 'BPLCT':
+            result = generateArtefactEntry(case, None, 0, 'StructRef', artefactProps.TYPE_VALUE_RESULT,
+                                           artefactProps.FORMAT_VALUE_ITK, fullPath)
+        elif pathParts[-1] == 'RTPLAN':
+            result = generateArtefactEntry(case, None, 0, 'StructSet', artefactProps.TYPE_VALUE_RESULT,
+                                           artefactProps.FORMAT_VALUE_ITK, fullPath)
+
+    return result
+  
+  
+def generateArtefactList(root):
+    crawler = DirectoryCrawler(root, fileFunction, True)
+  
+    return crawler.getArtefacts()
+
+
+if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--root', '-r', type=str)
+    parser.add_argument('--output', '-o', type=str)
+
+    cliargs, unknown = parser.parse_known_args()
+
+    artefacts = generateArtefactList(cliargs.root)
+  
+    saveArtefactList(cliargs.output, artefacts)
