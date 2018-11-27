@@ -1,5 +1,5 @@
 import subprocess as sp
-from utils.image_preproc import cropping
+from Radiomics.utils.image_preproc import cropping
 
 
 class FeaturesCalc():

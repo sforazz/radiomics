@@ -1,5 +1,5 @@
 import subprocess as sp
-from radiomics.utils.filemanip import split_filename
+from Radiomics.utils.filemanip import split_filename
 import os
 import glob
 

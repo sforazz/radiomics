@@ -1,6 +1,6 @@
 import numpy as np
 import nrrd
-from utils.filemanip import split_filename
+from Radiomics.utils.filemanip import split_filename
 import os
 
 

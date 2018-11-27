@@ -1,11 +1,11 @@
 #!/usr/bin/env python3.6
-from radiomics.converters.dicom import DicomConverters
-from radiomics.utils.filemanip import mouse_lung_data_preparation, batch_processing
+from Radiomics.converters.dicom import DicomConverters
+from Radiomics.utils.filemanip import mouse_lung_data_preparation, batch_processing
 import os
 import argparse
-from radiomics.utils.image_preproc import cropping
+from Radiomics.utils.image_preproc import cropping
 import shutil
-from radiomics.converters.nrrd import NrrdConverters
+from Radiomics.converters.nrrd import NrrdConverters
 import glob
 
 

@@ -1,7 +1,7 @@
-from radiomics.converters.dicom import DicomConverters
-from radiomics.utils.filemanip import mouse_lung_data_preparation, batch_processing
+from Radiomics.converters.dicom import DicomConverters
+from Radiomics.utils.filemanip import mouse_lung_data_preparation, batch_processing
 import os
-from radiomics.features.features_calculation import FeaturesCalc
+from Radiomics.features.features_calculation import FeaturesCalc
 import argparse
 
 

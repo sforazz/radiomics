@@ -1,4 +1,4 @@
-from radiomics.utils.rt import export_RTS
+from Radiomics.utils.rt import export_RTS
 import argparse
 import os
 
