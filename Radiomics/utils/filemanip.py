@@ -84,6 +84,11 @@ def mouse_lung_data_preparation(raw_data, temp_dir):
         dcm_hd = pydicom.read_file(dicom_vols[0])
         if len(dicom_vols) > 1 and '50s' in dcm_hd.SeriesDescription:
             folder_name = temp_dir+'/{0}_Sequence_{1}'.format(basename, n_seq)
+            slices = [x.split('/')[-1].split('.')[4] for x in dicom_vols]
+            if len(slices) != len(set(slices)):
+                print('Duplicate slices found in {} for H50s sequence. Please check. '
+                      'This subject will be excluded from the analysis.'.format(raw_data))
+                continue
             if not os.path.isdir(folder_name):
                 os.mkdir(folder_name)
             else:
@@ -96,14 +101,16 @@ def mouse_lung_data_preparation(raw_data, temp_dir):
                     continue
             data_folders.append(folder_name)
     if not data_folders:
-        raise Exception('No CT data with name containing "H50s" were found in {}'
-                        .format(raw_data))
+        print('No suitable CT data with name containing "H50s" were found in {}'.format(raw_data))
+        filename = None
     elif len(data_folders) > 1:
         print ('{0} datasets with name containing "H50s" were found in {1}. By default,'
                ' only the first one ({2}) will be used. Please check if this is correct.'
                .format(len(data_folders), raw_data, data_folders[0]))
+    else:
+        filename = sorted(glob.glob(data_folders[0]+'/*{}'.format(ext)))[0]
 
-    return sorted(glob.glob(data_folders[0]+'/*{}'.format(ext)))[0], folder_name
+    return filename, folder_name
 
 
 def batch_processing(input_data, root=''):

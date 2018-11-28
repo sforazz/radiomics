@@ -23,45 +23,48 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
     for i, raw_data_folder in enumerate(raw_data):
         if raw_data_folder not in processed_subs:
             filename, folder_name = mouse_lung_data_preparation(raw_data_folder, work_dir)
-    
-            converter = DicomConverters(filename, clean=clean)
-            converted_data = converter.mitk_converter()
-    
-            for j, mask in enumerate(os.listdir(mask_paths[i])):
-                if os.path.isfile(os.path.join(mask_paths[i], mask)):
-                    new_folder = folder_name+'/mouse_{}'.format(str(j+1).zfill(2))
-     
-                    if not os.path.isdir(new_folder):
-                        os.mkdir(new_folder)
-                    prefix = 'Raw_data_for_{}'.format(mask.split('.')[0])
-                    if crop:
-                        image, mask, size = cropping(converted_data, os.path.join(mask_paths[i], mask),
-                                               prefix=prefix)
-                        sizes.append(size)
-                        if nifti_path is not None:
-                            if os.path.isdir(nifti_path):
-                                imgs = glob.glob(nifti_path+'/*.nii*')
-                                if imgs:
-                                    z = len(imgs)/2
+            if filename:
+                converter = DicomConverters(filename, clean=clean)
+                converted_data = converter.mitk_converter()
+        
+                for j, mask in enumerate(os.listdir(mask_paths[i])):
+                    if os.path.isfile(os.path.join(mask_paths[i], mask)):
+                        new_folder = folder_name+'/mouse_{}'.format(str(j+1).zfill(2))
+         
+                        if not os.path.isdir(new_folder):
+                            os.mkdir(new_folder)
+                        prefix = 'Raw_data_for_{}'.format(mask.split('.')[0])
+                        if crop:
+                            image, mask, size = cropping(converted_data, os.path.join(mask_paths[i], mask),
+                                                   prefix=prefix)
+                            sizes.append(size)
+                            if nifti_path is not None:
+                                if os.path.isdir(nifti_path):
+                                    imgs = glob.glob(nifti_path+'/*.nii*')
+                                    if imgs:
+                                        z = len(imgs)/2
+                                    else:
+                                        z = 1
                                 else:
-                                    z = 1
-                            else:
-                                os.mkdir(nifti_path)
-                            outnames = ['Mouse_{}', 'Mask_{}']
-                            for k, f in enumerate([image, mask]):
-                                outname = os.path.join(nifti_path, outnames[k].format(str(z).zfill(5)))
-                                nrrd2nifti = NrrdConverters(f, outname=outname)
-                                nrrd2nifti.nrrd2nifti()
-                            z = z+1
-                        shutil.move(image, new_folder)
-                        shutil.move(mask, new_folder)
-                    else:
-                        shutil.copy2(os.path.join(mask_paths[i], mask), new_folder)
-                        shutil.copy2(converted_data, os.path.join(new_folder, prefix))
-                    
-            os.remove(converted_data)
-            with open(os.path.join(work_dir, 'processed_subjects.txt'), 'a') as f:
-                f.write(raw_data_folder+'\n')
+                                    os.mkdir(nifti_path)
+                                outnames = ['Mouse_{}', 'Mask_{}']
+                                for k, f in enumerate([image, mask]):
+                                    outname = os.path.join(nifti_path, outnames[k].format(str(z).zfill(5)))
+                                    nrrd2nifti = NrrdConverters(f, outname=outname)
+                                    nrrd2nifti.nrrd2nifti()
+                                z = z+1
+                            shutil.move(image, new_folder)
+                            shutil.move(mask, new_folder)
+                        else:
+                            shutil.copy2(os.path.join(mask_paths[i], mask), new_folder)
+                            shutil.copy2(converted_data, os.path.join(new_folder, prefix))
+                        
+                os.remove(converted_data)
+                with open(os.path.join(work_dir, 'processed_subjects.txt'), 'a') as f:
+                    f.write(raw_data_folder+'\n')
+            else:
+                with open(os.path.join(work_dir, 'skipped_subjects.txt'), 'a') as f:
+                    f.write(raw_data_folder+'\n')
         else:
             print('{} has already been processed and will be skipped.'.format(raw_data_folder))
 
