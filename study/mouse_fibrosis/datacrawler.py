@@ -19,18 +19,19 @@ def fileFunction(pathParts, fileName, fullPath):
     case = pathParts[0] #first dir is case id
 
     if ext=='.nrrd':
+        mouse_id = int(pathParts[-1].split('_')[-1])
         if name.startswith('Raw') and name.endswith('cropped'):
-            result = generateArtefactEntry(case, None, 0, 'RAW', artefactProps.TYPE_VALUE_RESULT,
+            result = generateArtefactEntry(case, None, mouse_id, 'RAW', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
         elif not name.startswith('Raw') and name.endswith('cropped'):
-            result = generateArtefactEntry(case, None, 0, 'MASK', artefactProps.TYPE_VALUE_RESULT,
+            result = generateArtefactEntry(case, None, mouse_id, 'MASK', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
 
         elif name.startswith('Raw') and not name.endswith('cropped'):
-            result = generateArtefactEntry(case, None, 0, 'RAW', artefactProps.TYPE_VALUE_RESULT,
+            result = generateArtefactEntry(case, None, mouse_id, 'RAW', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
         elif not name.startswith('Raw') and not name.endswith('cropped'):
-            result = generateArtefactEntry(case, None, 0, 'MASK', artefactProps.TYPE_VALUE_RESULT,
+            result = generateArtefactEntry(case, None, mouse_id, 'MASK', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
 
     return result
