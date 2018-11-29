@@ -42,7 +42,7 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
                                 if os.path.isdir(nifti_path):
                                     imgs = glob.glob(nifti_path+'/*.nii*')
                                     if imgs:
-                                        z = len(imgs)/2
+                                        z = int(len(imgs)/2)
                                     else:
                                         z = 1
                                 else:
