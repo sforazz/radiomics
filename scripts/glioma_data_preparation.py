@@ -10,7 +10,8 @@ import argparse
 IMAGE_TO_CHECK = ['BPLCT', 'PlanningMRI', 'FUMRI', 'FU_MRI']
 
 
-def run_preparation(root, tempDir):
+def run_preparation(root, tempDir, convert_to='nrrd'):
+
     subjects = sorted([os.path.join(root, name) for name in os.listdir(root)
                        if os.path.isdir(os.path.join(root, name))])
     
@@ -36,7 +37,15 @@ def run_preparation(root, tempDir):
                     shutil.copy2(f, dirName)
                 
                 converter = DicomConverters(dirName)
-                converter.mitk_converter()
+                if convert_to == 'nrrd':
+                    converter.mitk_converter()
+                elif convert_to == 'nifti_gz':
+                    converter.dcm2niix_converter()
+                elif convert_to == 'nifti':
+                    converter.dcm2niix_converter(compress=False)
+                else:
+                    raise Exception('Conversion from DICOM to {} is not supported.'
+                                    .format(convert_to))
             else:
                 try:
                     rtStruct = glob.glob(scan+'/*STRUCT*')[0]
@@ -50,9 +59,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', '-r', type=str)
     parser.add_argument('--output', '-o', type=str)
+    parser.add_argument('--convert_to', '-c', type=str, 
+                        help='Format for the converted DICOM file. Possible values are: "nrrd", '
+                        '"nifti" and "nifti_gz". Default is nrrd.')
 
     args = parser.parse_args()
   
-    run_preparation(args.root, args.output)
+    run_preparation(args.root, args.output, convert_to=args.convert_to)
 
 print('Done!')

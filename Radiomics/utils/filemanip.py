@@ -224,3 +224,13 @@ def dcm_check(dicoms, im_types, series_nums):
         dcms = dicoms
     
     return dcms
+
+
+def clean_folder(dicom_folder):
+
+    toDelete = glob.glob(dicom_folder+'/*.IMA')
+    if not toDelete:
+        toDelete = glob.glob(dicom_folder+'/*.dcm')
+    if toDelete:
+        for f in toDelete:
+            os.remove(f)
