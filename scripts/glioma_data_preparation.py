@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--output', '-o', type=str)
     parser.add_argument('--convert_to', '-c', type=str, 
                         help='Format for the converted DICOM file. Possible values are: "nrrd", '
-                        '"nifti" and "nifti_gz". Default is nrrd.')
+                        '"nifti" and "nifti_gz". Default is nrrd.', default='nrrd')
 
     args = parser.parse_args()
   

@@ -172,20 +172,22 @@ def dcm_info(dcm_folder):
     SeriesNums = []
     AcqTimes = []
     toRemove = []
+    InstanceNums = []
     for dcm in dicoms:
         header = pydicom.read_file(dcm)
         try:
             ImageTypes.append(tuple(header.ImageType))
             SeriesNums.append(header.SeriesNumber)
-            AcqTimes.append(header.AcquisitionTime) 
+            AcqTimes.append(header.AcquisitionTime)
+            InstanceNums.append(header.InstanceNumber)
         except AttributeError:
             print ('{} seems to do not have the right DICOM fields and '
                    'will be removed from the folder'.format(dcm))
             toRemove.append(dcm)
-    if len(AcqTimes) == 2*(len(set(AcqTimes))):
-        sortedAcqTm = sorted(zip(dicoms, AcqTimes), key=itemgetter(1))
-        uniqueAcqTms = [x[0] for x in sortedAcqTm[:][0:-1:2]]
-        toRemove = toRemove+uniqueAcqTms
+    if (len(InstanceNums) == 2*(len(set(InstanceNums)))) and len(set(SeriesNums)) == 1:
+        sortedInstanceNums = sorted(zip(dicoms, InstanceNums), key=itemgetter(1))
+        uniqueInstanceNums = [x[0] for x in sortedInstanceNums[:][0:-1:2]]
+        toRemove = toRemove+uniqueInstanceNums
     if toRemove:
         for f in toRemove:
             dicoms.remove(f)
