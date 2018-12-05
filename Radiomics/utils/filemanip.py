@@ -218,10 +218,10 @@ def dcm_check(dicoms, im_types, series_nums):
         im_type = list([x for x in im_types if not
                         'PROJECTION IMAGE' in x][0])
 
-        dcms = [x for x in dicoms if pydicom.read_file(x).ImageType==im_type]
+        dcms = [x for x in dicoms if pydicom.read_file(str(x)).ImageType==im_type]
     elif len(series_nums) > 1:
         series_num = np.max(series_nums)
-        dcms = [x for x in dicoms if pydicom.read_file(x).SeriesNumber==series_num]
+        dcms = [x for x in dicoms if pydicom.read_file(str(x)).SeriesNumber==series_num]
     else:
         dcms = dicoms
     
