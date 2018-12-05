@@ -163,9 +163,9 @@ def dcm_info(dcm_folder):
     series_nums : list
         list of unique series numbers extracted from the DICOMS
     """
-    dicoms = sorted(glob.glob(dcm_folder+'/*.dcm'))
+    dicoms = sorted(list(dcm_folder.glob('*.dcm')))
     if not dicoms:
-        dicoms = sorted(glob.glob(dcm_folder+'/*.IMA'))
+        dicoms = sorted(list(dcm_folder.glob('*.IMA')))
         if not dicoms:
             raise Exception('No DICOM files found in {}'.format(dcm_folder))
     ImageTypes = []
@@ -174,7 +174,7 @@ def dcm_info(dcm_folder):
     toRemove = []
     InstanceNums = []
     for dcm in dicoms:
-        header = pydicom.read_file(dcm)
+        header = pydicom.read_file(str(dcm))
         try:
             ImageTypes.append(tuple(header.ImageType))
             SeriesNums.append(header.SeriesNumber)
