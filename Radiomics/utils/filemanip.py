@@ -75,16 +75,16 @@ def mouse_lung_data_preparation(raw_data, temp_dir):
     if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
     basename = raw_data.split('/')[-1]
-    sequence_numbers = list(set([x.split('.')[-11] for x in dicoms]))
+    sequence_numbers = list(set([pydicom.read_file(x).SeriesNumber for x in dicoms]))
     for character in ILLEGAL_CHARACTERS:
         basename = basename.replace(character, '_')
     data_folders = []  # I will use this to store the sequence number of the CT data to convert
     for n_seq in sequence_numbers:                     
-        dicom_vols = [x for x in dicoms if n_seq in x.split('.')[-11]]
+        dicom_vols = [x for x in dicoms if n_seq==pydicom.read_file(x).SeriesNumber]
         dcm_hd = pydicom.read_file(dicom_vols[0])
         if len(dicom_vols) > 1 and '50s' in dcm_hd.SeriesDescription:
             folder_name = temp_dir+'/{0}_Sequence_{1}'.format(basename, n_seq)
-            slices = [x.split('/')[-1].split('.')[4] for x in dicom_vols]
+            slices = [pydicom.read_file(x).InstanceNumber for x in dicom_vols]
             if len(slices) != len(set(slices)):
                 print('Duplicate slices found in {} for H50s sequence. Please check. '
                       'This subject will be excluded from the analysis.'.format(raw_data))
