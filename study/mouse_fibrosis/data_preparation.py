@@ -19,10 +19,9 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
             for line in f:
                 processed_subs.append(line.strip())
     z = 0
-    sizes = []
     for i, raw_data_folder in enumerate(raw_data):
         if raw_data_folder not in processed_subs:
-            filename, folder_name = mouse_lung_data_preparation(raw_data_folder, work_dir)
+            filename, folder_name, dcm_hd = mouse_lung_data_preparation(raw_data_folder, work_dir)
             if filename:
                 converter = DicomConverters(filename, clean=clean)
                 converted_data = converter.mitk_converter()

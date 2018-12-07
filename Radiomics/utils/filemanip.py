@@ -63,6 +63,7 @@ def mouse_lung_data_preparation(raw_data, temp_dir):
     """
     
     dicoms = sorted(glob.glob(raw_data+'/*.IMA'))
+    dcm_info = {}
     if not dicoms:
         dicoms = sorted(glob.glob(raw_data+'/*.dcm'))
         if not dicoms:
@@ -109,8 +110,12 @@ def mouse_lung_data_preparation(raw_data, temp_dir):
                .format(len(data_folders), raw_data, data_folders[0]))
     else:
         filename = sorted(glob.glob(data_folders[0]+'/*{}'.format(ext)))[0]
+        hd = pydicom.read_file(filename)
+        dcm_info['vox_x'] = hd.PixelSpacing[0]
+        dcm_info['vox_y'] = hd.PixelSpacing[1]
+        dcm_info['vox_z'] = hd.SliceThickness
 
-    return filename, folder_name
+    return filename, folder_name, dcm_info
 
 
 def batch_processing(input_data, root=''):

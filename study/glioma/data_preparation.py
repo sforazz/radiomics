@@ -1,4 +1,3 @@
-import glob
 from Radiomics.utils.filemanip import dcm_info, dcm_check
 import os
 import shutil

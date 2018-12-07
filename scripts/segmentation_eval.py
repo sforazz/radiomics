@@ -28,8 +28,8 @@ def outliers_modified_z_score(ys):
 
 
 refs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_nifti/Mask_0*.nii.gz'))
-segs = sorted(glob.glob('/home/fsforazz/Desktop/PhD_project/fibrosis_project'
-                        '/mouse_lung_ct_0.85_dice/segmentation_output_mouse_lung_0.85/*.nii.gz'))
+segs = sorted(glob.glob('/home/fsforazz/niftynet/models/mouse_lung_ct/'
+                        'segmentation_output_mouse_lung/*.nii.gz'))
 all_dices = []
 
 for seg in segs: 
