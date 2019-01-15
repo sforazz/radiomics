@@ -1,13 +1,15 @@
 import nibabel as nib
 import numpy as np
 import glob
-
+import matplotlib.pyplot as plot
 
 def dice_calculation(gt, seg):
 
     gt = nib.load(gt).get_data() 
     seg = nib.load(seg).get_data() 
-    seg = np.squeeze(seg) 
+    seg = np.squeeze(seg)
+    gt = gt.astype('uint16')
+    seg = seg.astype('uint16')
     vox_gt = np.sum(gt) 
     vox_seg = np.sum(seg) 
     common = np.sum(gt & seg) 
@@ -28,8 +30,7 @@ def outliers_modified_z_score(ys):
 
 
 refs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_nifti/Mask_0*.nii.gz'))
-segs = sorted(glob.glob('/home/fsforazz/niftynet/models/mouse_lung_ct/'
-                        'segmentation_output_mouse_lung/*.nii.gz'))
+segs = sorted(glob.glob('/home/fsforazz/Desktop/mouse_segmentation_results/*.nii.gz'))
 all_dices = []
 
 for seg in segs: 
@@ -39,8 +40,16 @@ for seg in segs:
     all_dices.append(dice)
 
 outliers = outliers_modified_z_score(all_dices)
-print('Mean Dice: {0} \nStd: {1} \nMax Dice: {2}\nMin Dice {3}'
-      .format(np.mean(all_dices), np.std(all_dices), np.max(all_dices), np.min(all_dices)))
+print('Mean DSC: {0} \nMedian DSC: {4} \nStd: {1} \nMax DSC: {2}\nMin DSC: {3}'
+      .format(np.mean(all_dices), np.std(all_dices), np.max(all_dices), np.min(all_dices),
+              np.median(all_dices)))
 for ol in outliers[0]:
-    print('Outlier: {0}, Dice: {1}'.format(segs[ol], all_dices[ol]))
+    print('Outlier: {0}, DSC: {1}'.format(segs[ol], all_dices[ol]))
+
+plot.hist(all_dices, bins=30)
+plot.ylabel('Frequency')
+plot.xlabel('Dice Score')
+plot.savefig('histogram.png')
+plot.close()
+
 print('Done!')
