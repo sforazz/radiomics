@@ -1,7 +1,7 @@
-from radiomics.utils.filemanip import dcm_info, dcm_check
+from core.utils.dicom import dcm_info, dcm_check
 import os
 import shutil
-from radiomics.converters.dicom import DicomConverters
+from core.converters.dicom import DicomConverter
 import re
 import argparse
 from pathlib import Path
@@ -43,16 +43,17 @@ def run_preparation(root, tempDir, convert_to='nrrd'):
                 for f in dicoms:
                     shutil.copy2(f, dirName)
                 
-                converter = DicomConverters(str(dirName))
-                if convert_to == 'nrrd':
-                    converter.mitk_converter()
-                elif convert_to == 'nifti_gz':
-                    converter.dcm2niix_converter()
-                elif convert_to == 'nifti':
-                    converter.dcm2niix_converter(compress=False)
-                else:
-                    raise Exception('Conversion from DICOM to {} is not supported.'
-                                    .format(convert_to))
+                converter = DicomConverter(str(dirName))
+                converter.convert(convert_to=convert_to)
+#                 if convert_to == 'nrrd':
+#                     converter.mitk_converter()
+#                 elif convert_to == 'nifti_gz':
+#                     converter.dcm2niix_converter()
+#                 elif convert_to == 'nifti':
+#                     converter.dcm2niix_converter(compress=False)
+#                 else:
+#                     raise Exception('Conversion from DICOM to {} is not supported.'
+#                                     .format(convert_to))
             else:
                 try:
                     rtStruct = list(scan.glob('*STRUCT*'))[0]

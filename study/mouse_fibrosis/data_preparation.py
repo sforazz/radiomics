@@ -1,11 +1,11 @@
 #!/usr/bin/env python3.6
-from radiomics.converters.dicom import DicomConverters
-from radiomics.utils.filemanip import mouse_lung_data_preparation, batch_processing
+from core.converters.dicom import DicomConverter
+from core.utils.filemanip import batch_processing
 import os
 import argparse
-from radiomics.utils.image_preproc import cropping
+from core.process.preprocess import cropping, mouse_lung_data_preparation
 import shutil
-from radiomics.converters.nrrd import NrrdConverters
+from core.converters.nrrd import NrrdConverter
 import glob
 
 
@@ -21,10 +21,10 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
     z = 0
     for i, raw_data_folder in enumerate(raw_data):
         if raw_data_folder not in processed_subs:
-            filename, folder_name, dcm_hd = mouse_lung_data_preparation(raw_data_folder, work_dir)
+            filename, folder_name, _ = mouse_lung_data_preparation(raw_data_folder, work_dir)
             if filename:
-                converter = DicomConverters(filename, clean=clean)
-                converted_data = converter.mitk_converter()
+                converter = DicomConverter(filename, clean=clean)
+                converted_data = converter.convert()
         
                 for j, mask in enumerate(os.listdir(mask_paths[i])):
                     if os.path.isfile(os.path.join(mask_paths[i], mask)):
@@ -49,8 +49,8 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
                                     outnames = ['Mouse_{}', 'Mask_{}']
                                     for k, f in enumerate([image, mask]):
                                         outname = os.path.join(nifti_path, outnames[k].format(str(z).zfill(5)))
-                                        nrrd2nifti = NrrdConverters(f, outname=outname)
-                                        nrrd2nifti.nrrd2nifti()
+                                        nrrd2nifti = NrrdConverter(f)
+                                        nrrd2nifti.convert(outname=outname)
                                     z = z+1
                                 shutil.move(image, new_folder)
                                 shutil.move(mask, new_folder)
