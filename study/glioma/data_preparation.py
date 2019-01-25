@@ -1,7 +1,7 @@
-from Radiomics.utils.filemanip import dcm_info, dcm_check
+from radiomics.utils.filemanip import dcm_info, dcm_check
 import os
 import shutil
-from Radiomics.converters.dicom import DicomConverters
+from radiomics.converters.dicom import DicomConverters
 import re
 import argparse
 from pathlib import Path

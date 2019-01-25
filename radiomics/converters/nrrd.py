@@ -1,7 +1,7 @@
 import nrrd
 import nibabel as nib
 import numpy as np
-from Radiomics.utils.filemanip import split_filename
+from radiomics.utils.filemanip import split_filename
 import os
 
 
