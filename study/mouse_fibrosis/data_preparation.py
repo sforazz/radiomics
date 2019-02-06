@@ -24,7 +24,7 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
             filename, folder_name, _ = mouse_lung_data_preparation(raw_data_folder, work_dir)
             if filename:
                 converter = DicomConverter(filename, clean=clean)
-                converted_data = converter.convert()
+                converted_data = converter.convert(convert_to='nrrd', method='mitk')
         
                 for j, mask in enumerate(os.listdir(mask_paths[i])):
                     if os.path.isfile(os.path.join(mask_paths[i], mask)):
@@ -43,7 +43,7 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
                                         if imgs:
                                             z = int(len(imgs)/2)
                                         else:
-                                            z = 1
+                                            z = z
                                     else:
                                         os.mkdir(nifti_path)
                                     outnames = ['Mouse_{}', 'Mask_{}']
