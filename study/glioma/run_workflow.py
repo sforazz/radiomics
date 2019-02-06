@@ -29,7 +29,7 @@ parser.add_argument('--resampling', '-rs', type=float, default=None, help='If pr
                     'By default the original image size will be used.')
 parser.add_argument('--outputExt', '-e', type=str, default='nrrd',
                     help='Output extention to be used to save all the images results. Possible values'
-                    ' are: "nrrd", "nifti", "nifti.gz". Default = nrrd.')
+                    ' are: "nrrd", "nii", "nii.gz". Default = nrrd.')
  
 cliargs, unknown = parser.parse_known_args()
 multiTaskCount = cliargs.parallel

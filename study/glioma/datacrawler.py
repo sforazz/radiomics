@@ -7,7 +7,7 @@ import avid.common.artefact.defaultProps as artefactProps
 from avid.common.artefact.generator import generateArtefactEntry
 from avid.common.artefact.fileHelper import saveArtefactList_xml as saveArtefactList
 from avid.common.artefact import similarityRelevantProperties
-from radiomics.utils.filemanip import split_filename
+from core.utils.filemanip import split_filename
 
 similarityRelevantProperties.append('sequence')
 AVAILABLE_OUT_EXT = ['.nrrd', '.nii', '.nii.gz']
