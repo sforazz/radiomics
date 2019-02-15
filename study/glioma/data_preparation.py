@@ -15,8 +15,6 @@ def run_preparation(root, tempDir, convert_to='nrrd'):
     root = Path(root)
     tempDir = Path(tempDir)
     subjects = sorted([root/x for x in root.iterdir() if x.is_dir()])
-#     subjects = sorted([root / name for name in os.listdir(root)
-#                        if os.path.isdir(os.path.join(root, name))])
     
     for sub in subjects:
         print('\nProcessing subject {}'.format(sub))
@@ -24,9 +22,7 @@ def run_preparation(root, tempDir, convert_to='nrrd'):
         scans = [x for x in sub.iterdir() if x.is_dir() and
                  (x.parts[-1] in IMAGE_TO_CHECK
                  or re.match('(R|r)(T|t).*(p|P)(L|l)(A|a)(N|n)', x.parts[-1]))]
-#         scans = [x for x in glob.glob(sub+'/*') if os.path.isdir(x) and
-#                  (x.split('/')[-1] in IMAGE_TO_CHECK
-#                  or re.match('(R|r)(T|t).*(p|P)(L|l)(A|a)(N|n)', x.split('/')[-1]))]
+
         for scan in scans:
             scanName = scan.parts[-1]
             if scanName == 'FU_MRI':
@@ -34,8 +30,12 @@ def run_preparation(root, tempDir, convert_to='nrrd'):
             elif re.match('(R|r)(T|t).*(p|P)(L|l)(A|a)(N|n)', scanName):
                 scanName = 'RTPLAN'
             dirName = tempDir / subName / scanName
-#             dirName = os.path.join(tempDir, subName, scanName)
-            os.makedirs(dirName)
+            if not os.path.isdir(dirName):
+                os.makedirs(dirName)
+            else:
+                shutil.rmtree(dirName)
+                os.makedirs(dirName)
+
             if scanName in IMAGE_TO_CHECK:
                 dicoms, im_types, series_nums = dcm_info(scan)
                 dicoms = dcm_check(dicoms, im_types, series_nums)
@@ -45,15 +45,7 @@ def run_preparation(root, tempDir, convert_to='nrrd'):
                 
                 converter = DicomConverter(str(dirName))
                 converter.convert(convert_to=convert_to)
-#                 if convert_to == 'nrrd':
-#                     converter.mitk_converter()
-#                 elif convert_to == 'nifti_gz':
-#                     converter.dcm2niix_converter()
-#                 elif convert_to == 'nifti':
-#                     converter.dcm2niix_converter(compress=False)
-#                 else:
-#                     raise Exception('Conversion from DICOM to {} is not supported.'
-#                                     .format(convert_to))
+
             else:
                 try:
                     rtStruct = list(scan.glob('*STRUCT*'))[0]

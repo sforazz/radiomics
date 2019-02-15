@@ -8,7 +8,11 @@ from avid.actions.mapR import mapRBatchAction as mapR
 from avid.actions.matchR import matchRBatchAction as matchR
 from avid.actions.threadingScheduler import ThreadingScheduler
 from avid.actions.voxelizer import VoxelizerBatchAction as voxelizer
-from avid.actions.CLGlobalFeatures import FeatureExtractionBatchAction as feature_extraction
+from core.pipelines.CLGlobalFeatures import FeatureExtractionBatchAction as feature_extraction
+import avid.common.artefact.defaultProps as artefactProps
+import avid.common.demultiplexer as demux
+from core.pipelines.bet import BrainExtractionBatchAction as brain_extraction
+
 
 __this__ = sys.modules[__name__]
 NRRD2NIFTI_CALLABLE = '/home/fsforazz/git/radiomics/scripts/nrrd2nifti.py'
@@ -19,6 +23,9 @@ NRRD2NIFTI_CALLABLE = '/home/fsforazz/git/radiomics/scripts/nrrd2nifti.py'
 #command line parsing
 parser = argparse.ArgumentParser()
 parser.add_argument('--regAlg', '-a', type=str)
+parser.add_argument('--device', '-d', type=str, default='0', 
+                    help='used to set on which device the brain extraction will run. 0 for GPU, "cpu" for CPU.'
+                    'Default is CPU.')
 parser.add_argument('--parallel', '-p', type=int, default=1)
 parser.add_argument('--structures', '-s', nargs='+', type=str, default=None)
 parser.add_argument('--features', '-f', nargs='+', type=str, default='all',
@@ -38,6 +45,7 @@ structures = cliargs.structures
 features = cliargs.features
 resampling = cliargs.resampling
 outputExt = cliargs.outputExt
+device = cliargs.device
 
 # regAlgPath = '/home/fsforazz/git/MITK-superbuild/MITK-build/lib/mdra-D-0-13_MITK_MultiModal_rigid_default.so'
 ###############################################################################
@@ -56,11 +64,15 @@ for i in range(2):
         MovingImageSelector = ATS('PlanningMRI')
         reg_actionTag = 'PMRI2CT'
         map_actionTag = 'mapped_PMRI'
+        bet_actionTag = 'bet_PMRI'
+        map_bet_actionTag = 'mapped_bet_PMRI'
         feature_actionTag = 'feature_ext_PMRI'
     elif i == 1:
         MovingImageSelector = ATS('FUMRI')
         reg_actionTag = 'FUMRI2CT'
         map_actionTag = 'mapped_FUMRI'
+        bet_actionTag = 'bet_FUMRI'
+        map_bet_actionTag = 'mapped_bet_FUMRI'
         feature_actionTag = 'feature_ext_FUMRI'
 
     with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
@@ -68,9 +80,18 @@ for i in range(2):
         reg_Selector = matchR(
             ReferenceImageSelector, MovingImageSelector, targetIsReference = False, algorithm=regAlgPath,
             actionTag = reg_actionTag, scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+            
+        bet_Selector = brain_extraction(
+            MovingImageSelector, device=device,
+            actionTag = bet_actionTag, scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
     
         mapped_moving_selector = mapR(
             MovingImageSelector, reg_Selector, ReferenceImageSelector, actionTag=map_actionTag,
+            scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
+        
+        mask_selector = demux.getSelectors(artefactProps.RESULT_SUB_TAG, bet_Selector)['MASK']
+        mapped_bet_mask = mapR(
+            mask_selector, reg_Selector, ReferenceImageSelector, actionTag=map_bet_actionTag,
             scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
         
         voxelizer_selector = voxelizer(
