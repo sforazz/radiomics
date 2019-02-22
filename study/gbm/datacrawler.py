@@ -25,17 +25,17 @@ def fileFunction(pathParts, fileName, fullPath):
         result = generateArtefactEntry(case, None, 0, name, artefactProps.TYPE_VALUE_RESULT,
                                        artefactProps.FORMAT_VALUE_ITK, fullPath)
     elif ext=='.dcm':
-        if pathParts[-1] == 'BPLCT':
+        if pathParts[-2] == 'BPLCT' or pathParts[-2] == 'CT':
             result = generateArtefactEntry(case, None, 0, 'StructRef', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
-        elif pathParts[-1] == 'RTPLAN':
+        elif pathParts[-2] == 'RTSTRUCT':
             result = generateArtefactEntry(case, None, 0, 'StructSet', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
 
     return result
   
   
-def generateArtefactList(root):
+def generateArtefactList(root, inputs):
     crawler = DirectoryCrawler(root, fileFunction, True)
   
     return crawler.getArtefacts()
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', '-r', type=str)
     parser.add_argument('--output', '-o', type=str)
-    parser.add_argument('--inputs', '-i', nargs='+', type=str)
+    parser.add_argument('--inputs', '-i', nargs='+', type=str, default=None)
 
     cliargs, unknown = parser.parse_known_args()
 

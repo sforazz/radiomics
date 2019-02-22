@@ -4,13 +4,11 @@ from core.utils.filemanip import batch_processing
 import os
 import argparse
 from core.process.preprocess import cropping, mouse_lung_data_preparation
-import shutil
 from core.converters.nrrd import NrrdConverter
-import glob
 from core.process.crop import ImageCropping
 
 def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False, clean=False,
-                                    nifti_path=None):
+                                    save_nii=True):
 
     raw_data, mask_paths = batch_processing(input_data, root=root_path)
     processed_subs = []
@@ -18,49 +16,36 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
         with open(os.path.join(work_dir, 'processed_subjects.txt'), 'r') as f:
             for line in f:
                 processed_subs.append(line.strip())
-    z = 0
     for i, raw_data_folder in enumerate(raw_data):
         if raw_data_folder not in processed_subs:
-            filename, folder_name, _ = mouse_lung_data_preparation(raw_data_folder, work_dir)
+            print('Processing subject {}\n'.format(raw_data_folder.split('/')[-1]))
+            filename, _, _ = mouse_lung_data_preparation(raw_data_folder, work_dir)
             if filename:
                 converter = DicomConverter(filename, clean=clean)
                 converted_data = converter.convert(convert_to='nrrd', method='mitk')
-                if mask_paths is not None:
-                    for j, mask in enumerate(os.listdir(mask_paths[i])):
-                        if os.path.isfile(os.path.join(mask_paths[i], mask)):
-                            new_folder = folder_name+'/mouse_{}'.format(str(j+1).zfill(2))
-             
-                            if not os.path.isdir(new_folder):
-                                os.mkdir(new_folder)
-                            prefix = 'Raw_data_for_{}'.format(mask.split('.')[0])
-                            if crop:
+                
+                if crop:
+                    images = []
+                    if mask_paths is not None:
+                        for mask in os.listdir(mask_paths[i]):
+                            if os.path.isfile(os.path.join(mask_paths[i], mask)):
+                                prefix = 'Raw_data_for_{}'.format(mask.split('.')[0])
                                 cropping = ImageCropping(converted_data, os.path.join(mask_paths[i], mask),
                                                          prefix=prefix)
                                 image, mask = cropping.crop_with_mask()
-#                                 image, mask = cropping(converted_data, os.path.join(mask_paths[i], mask),
-#                                                        prefix=prefix)
                                 if image is not None:
-                                    if nifti_path is not None:
-                                        if os.path.isdir(nifti_path):
-                                            imgs = glob.glob(nifti_path+'/*.nii*')
-                                            if imgs:
-                                                z = int(len(imgs)/2)
-                                            else:
-                                                z = z
-                                        else:
-                                            os.mkdir(nifti_path)
-                                        outnames = ['Mouse_{}', 'Mask_{}']
-                                        for k, f in enumerate([image, mask]):
-                                            outname = os.path.join(nifti_path, outnames[k].format(str(z).zfill(5)))
-                                            nrrd2nifti = NrrdConverter(f)
-                                            nrrd2nifti.convert(outname=outname)
-                                        z = z+1
-                                    shutil.move(image, new_folder)
-                                    shutil.move(mask, new_folder)
-                            else:
-                                shutil.copy2(os.path.join(mask_paths[i], mask), new_folder)
-                                shutil.copy2(converted_data, os.path.join(new_folder, prefix)+'.nrrd')
-                        
+                                    images.append(image)
+                                    images.append(mask)
+                    else:
+                        cropping = ImageCropping(converted_data)
+                        cropped = cropping.crop_wo_mask()
+                        images = images + cropped
+                    if images:
+                        for f in images:
+                            if save_nii:
+                                nrrd2nifti = NrrdConverter(f)
+                                nrrd2nifti.convert()
+            
                 os.remove(converted_data)
                 with open(os.path.join(work_dir, 'processed_subjects.txt'), 'a') as f:
                     f.write(raw_data_folder+'\n')
@@ -88,13 +73,13 @@ if __name__ == "__main__":
     parser.add_argument('--clean', '-cl', action='store_true', default=False,
                         help=('If provided, the copied DICOM files in the working directory will be '
                               'deleted, leaving only the NRRD images (original size or cropped).'))
-    parser.add_argument('--nifti_path', '-np', type=str, default=None,
+    parser.add_argument('--save_nii', '-sn', action='store_true', default=False,
                         help=('If provided, the cropped images and masks will be saved as nii.gz in '
                               'this folder.'))
     
     args = parser.parse_args()
     
     mouse_fibrosis_data_preparation(args.input_file, args.root, args.work_dir, args.crop, args.clean,
-                                    args.nifti_path)
+                                    args.save_nii)
 
     print('Done!')
