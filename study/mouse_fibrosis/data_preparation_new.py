@@ -3,9 +3,10 @@ from core.converters.dicom import DicomConverter
 from core.utils.filemanip import batch_processing
 import os
 import argparse
-from core.process.preprocess import cropping, mouse_lung_data_preparation
+from core.process.preprocess import mouse_lung_data_preparation
 from core.converters.nrrd import NrrdConverter
 from core.process.crop import ImageCropping
+
 
 def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False, clean=False,
                                     save_nii=True):
