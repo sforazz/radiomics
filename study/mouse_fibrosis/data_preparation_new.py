@@ -30,7 +30,7 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
                     if mask_paths is not None:
                         for mask in os.listdir(mask_paths[i]):
                             if os.path.isfile(os.path.join(mask_paths[i], mask)):
-                                prefix = 'Raw_data_for_{}'.format(mask.split('.')[0])
+                                prefix = 'Raw_data_for_{}'.format('_'.join(mask.split('.')[:-1]))
                                 cropping = ImageCropping(converted_data, os.path.join(mask_paths[i], mask),
                                                          prefix=prefix)
                                 image, mask = cropping.crop_with_mask()

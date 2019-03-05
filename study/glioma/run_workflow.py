@@ -23,6 +23,7 @@ NRRD2NIFTI_CALLABLE = '/home/fsforazz/git/radiomics/scripts/nrrd2nifti.py'
 #command line parsing
 parser = argparse.ArgumentParser()
 parser.add_argument('--regAlg', '-a', type=str)
+parser.add_argument('--inputs', '-i', nargs='+', type=str, default=None)
 parser.add_argument('--device', '-d', type=str, default='0', 
                     help='used to set on which device the brain extraction will run. 0 for GPU, "cpu" for CPU.'
                     'Default is CPU.')
@@ -37,6 +38,8 @@ parser.add_argument('--resampling', '-rs', type=float, default=None, help='If pr
 parser.add_argument('--outputExt', '-e', type=str, default='nrrd',
                     help='Output extention to be used to save all the images results. Possible values'
                     ' are: "nrrd", "nii", "nii.gz". Default = nrrd.')
+parser.add_argument('--bet', '-b', default=False, action='store_true',
+                    help='If provided, the brain extraction will be performed. Default = False.')
  
 cliargs, unknown = parser.parse_known_args()
 multiTaskCount = cliargs.parallel
@@ -46,53 +49,47 @@ features = cliargs.features
 resampling = cliargs.resampling
 outputExt = cliargs.outputExt
 device = cliargs.device
+bet = cliargs.bet
+inputs = cliargs.inputs
 
 # regAlgPath = '/home/fsforazz/git/MITK-superbuild/MITK-build/lib/mdra-D-0-13_MITK_MultiModal_rigid_default.so'
 ###############################################################################
 # general setup selectors for a more readable script
 ###############################################################################
-ReferenceImageSelector = ATS('BPLCT')
+ReferenceImageSelector = ATS('CT')
 VoxelizerRefSelector = ATS('StructRef')
 VoxelizerStructSelector = ATS('StructSet')
 
 ###############################################################################
 # the workflow itself
 ###############################################################################
-for i in range(2):
+for i, el in enumerate(inputs):
 
-    if i == 0:
-        MovingImageSelector = ATS('PlanningMRI')
-        reg_actionTag = 'PMRI2CT'
-        map_actionTag = 'mapped_PMRI'
-        bet_actionTag = 'bet_PMRI'
-        map_bet_actionTag = 'mapped_bet_PMRI'
-        feature_actionTag = 'feature_ext_PMRI'
-    elif i == 1:
-        MovingImageSelector = ATS('FUMRI')
-        reg_actionTag = 'FUMRI2CT'
-        map_actionTag = 'mapped_FUMRI'
-        bet_actionTag = 'bet_FUMRI'
-        map_bet_actionTag = 'mapped_bet_FUMRI'
-        feature_actionTag = 'feature_ext_FUMRI'
+    MovingImageSelector = ATS(el)
+    reg_actionTag = '{}2CT'.format(el)
+    map_actionTag = 'mapped_{}'.format(el)
+    bet_actionTag = 'bet_{}'.format(el)
+    map_bet_actionTag = 'mapped_bet_{}'.format(el)
+    feature_actionTag = 'feature_ext_{}'.format(el)
 
     with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
     
         reg_Selector = matchR(
             ReferenceImageSelector, MovingImageSelector, targetIsReference = False, algorithm=regAlgPath,
             actionTag = reg_actionTag, scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-            
-        bet_Selector = brain_extraction(
-            MovingImageSelector, device=device,
-            actionTag = bet_actionTag, scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-    
+
         mapped_moving_selector = mapR(
             MovingImageSelector, reg_Selector, ReferenceImageSelector, actionTag=map_actionTag,
             scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
-        
-        mask_selector = demux.getSelectors(artefactProps.RESULT_SUB_TAG, bet_Selector)['MASK']
-        mapped_bet_mask = mapR(
-            mask_selector, reg_Selector, ReferenceImageSelector, actionTag=map_bet_actionTag,
-            scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
+        if bet is True: 
+            bet_Selector = brain_extraction(
+                MovingImageSelector, device=device,
+                actionTag = bet_actionTag, scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+            
+            mask_selector = demux.getSelectors(artefactProps.RESULT_SUB_TAG, bet_Selector)['MASK']
+            mapped_bet_mask = mapR(
+                mask_selector, reg_Selector, ReferenceImageSelector, actionTag=map_bet_actionTag,
+                scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
         
         voxelizer_selector = voxelizer(
             VoxelizerStructSelector, VoxelizerRefSelector, structNames = structures,
