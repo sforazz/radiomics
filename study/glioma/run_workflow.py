@@ -110,3 +110,8 @@ for i, el in enumerate(inputs):
                 mapped_moving_selector, voxelizer_selector, features=features, resampling=resampling,
                 actionTag=feature_actionTag,
                 scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+            
+            feature_Selector_CT = feature_extraction(
+                ReferenceImageSelector, voxelizer_selector, features=features, resampling=resampling,
+                actionTag='feature_ext_CT',
+                scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
