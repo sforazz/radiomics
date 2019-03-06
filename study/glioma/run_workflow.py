@@ -105,6 +105,12 @@ for i, el in enumerate(inputs):
                 mapped_moving_selector, map_mask2image_selector, features=features, resampling=resampling,
                 actionTag=feature_actionTag,
                 scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+                
+            feature_Selector_CT = feature_extraction(
+                ReferenceImageSelector, map_mask2image_selector, features=features, resampling=resampling,
+                actionTag='feature_ext_CT',
+                scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+
         else:
             feature_Selector = feature_extraction(
                 mapped_moving_selector, voxelizer_selector, features=features, resampling=resampling,
