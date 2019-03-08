@@ -1,4 +1,4 @@
-__author__ = 'floca'
+__author__ = 'fsforazz'
 
 import os
 import argparse
@@ -12,14 +12,13 @@ from avid.common.artefact import similarityRelevantProperties
 similarityRelevantProperties.append('sequence')
 
 def fileFunction(pathParts, fileName, fullPath):
-    '''Functor to generate an artefact for a file stored with the BAT project
-    storage conventions.'''
+    '''Functor to generate an artefact for extracting the features from the mouse CT images.'''
     result = None
     name, ext = os.path.splitext(fileName)
     case = pathParts[0] #first dir is case id
 
     if ext=='.nrrd':
-        mouse_id = int(pathParts[-1].split('_')[-1])
+        mouse_id = name.replace('-', '_').split('_')[-3]
         if name.startswith('Raw') and name.endswith('cropped'):
             result = generateArtefactEntry(case, None, mouse_id, 'RAW', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
