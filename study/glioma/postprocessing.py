@@ -8,9 +8,9 @@ import collections
 from core.utils.filemanip import mergedict
 
 
-raw_data_dir = '/mnt/sdb/Data_unsortiertO'
-results_dir = '/mnt/sdb/glioma_dc_session/feature_ext_MR_T1KM/result'
-outfile = '/home/fsforazz/Desktop/results_feat.csv'
+raw_data_dir = '/media/fsforazz/extra_HD/Data_unsortiertO'
+results_dir = '/media/fsforazz/extra_HD/glioma_dc_session/feature_ext_CT/result'
+outfile = '/home/fsforazz/Desktop/results_feat_CT.csv'
 
 subs = [x for x in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, x))]
 results = collections.defaultdict(dict)
@@ -19,17 +19,14 @@ for s in subs:
     results[s] = {}
     raw_data_path = os.path.join(raw_data_dir, s, "CT", "dcm")
     try:
-        results_file = sorted(glob.glob(os.path.join(results_dir, s)+'/*.csv'))[0]
-        if os.stat(results_file).st_size != 0:
-            with open(results_file, 'r') as f:
-                data = csv.reader(f, delimiter=';')
-                res = [x for x in data]
-            for i in range(5, len(res[0])):
-                results[s][res[0][i]] = res[1][i]
-        else:
-            print('{} is empty!'.format(results_file))        
+        results_file = [x for x in sorted(glob.glob(os.path.join(results_dir, s)+'/*.csv')) if os.stat(x).st_size != 0][0]
+        with open(results_file, 'r') as f:
+            data = csv.reader(f, delimiter=';')
+            res = [x for x in data]
+        for i in range(5, len(res[0])):
+            results[s][res[0][i]] = res[1][i]
     except IndexError:
-        print('There is no csv file in {}'.format(os.path.join(results_dir, s)))
+        print('There is no not-empty csv file in {}'.format(os.path.join(results_dir, s)))
 
     try:
         ref_dcm = sorted(glob.glob(raw_data_path+'/*.dcm'))[0]

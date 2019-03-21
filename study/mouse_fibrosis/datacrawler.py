@@ -2,7 +2,7 @@ __author__ = 'fsforazz'
 
 import os
 import argparse
-
+import re
 from avid.common.artefact.crawler import DirectoryCrawler
 import avid.common.artefact.defaultProps as artefactProps
 from avid.common.artefact.generator import generateArtefactEntry
@@ -18,7 +18,9 @@ def fileFunction(pathParts, fileName, fullPath):
     case = pathParts[0] #first dir is case id
 
     if ext=='.nrrd':
-        mouse_id = name.replace('-', '_').split('_')[-3]
+        pattern = re.compile('[\W]+')
+        name = pattern.sub('_', name) 
+        mouse_id = name.split('_')[-3]
         if name.startswith('Raw') and name.endswith('cropped'):
             result = generateArtefactEntry(case, None, mouse_id, 'RAW', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
