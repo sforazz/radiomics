@@ -28,12 +28,12 @@ def fileFunction(pathParts, fileName, fullPath):
             result = generateArtefactEntry(case, None, mouse_id, 'MASK', artefactProps.TYPE_VALUE_RESULT,
                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
 
-        elif name.startswith('Raw') and not name.endswith('cropped'):
-            result = generateArtefactEntry(case, None, mouse_id, 'RAW', artefactProps.TYPE_VALUE_RESULT,
-                                           artefactProps.FORMAT_VALUE_ITK, fullPath)
-        elif not name.startswith('Raw') and not name.endswith('cropped'):
-            result = generateArtefactEntry(case, None, mouse_id, 'MASK', artefactProps.TYPE_VALUE_RESULT,
-                                           artefactProps.FORMAT_VALUE_ITK, fullPath)
+#         elif name.startswith('Raw') and not name.endswith('cropped'):
+#             result = generateArtefactEntry(case, None, mouse_id, 'RAW', artefactProps.TYPE_VALUE_RESULT,
+#                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
+#         elif not name.startswith('Raw') and not name.endswith('cropped'):
+#             result = generateArtefactEntry(case, None, mouse_id, 'MASK', artefactProps.TYPE_VALUE_RESULT,
+#                                            artefactProps.FORMAT_VALUE_ITK, fullPath)
 
     return result
   
