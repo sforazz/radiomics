@@ -82,8 +82,9 @@ with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
 
     if outputExt != 'nrrd':
         map_mask2image_selector = mapR(
-            voxelizer_selector, templateSelector=ReferenceImageSelector, actionTag='map_mask2Ref',
-            scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
+            voxelizer_selector, templateSelector=ReferenceImageSelector, interpolator = "nn",
+            actionTag='map_mask2Ref', scheduler=ThreadingScheduler(multiTaskCount),
+            outputExt=outputExt).do().tagSelector
 
         feature_Selector = feature_extraction(
             mapped_moving_selector, map_mask2image_selector, same_tp=False, features=features,
