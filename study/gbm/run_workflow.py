@@ -15,7 +15,6 @@ from core.pipelines.bet import BrainExtractionBatchAction as brain_extraction
 
 
 __this__ = sys.modules[__name__]
-NRRD2NIFTI_CALLABLE = '/home/fsforazz/git/radiomics/scripts/nrrd2nifti.py'
 ###############################################################################
 # general script settings
 ###############################################################################
@@ -23,8 +22,6 @@ NRRD2NIFTI_CALLABLE = '/home/fsforazz/git/radiomics/scripts/nrrd2nifti.py'
 #command line parsing
 parser = argparse.ArgumentParser()
 parser.add_argument('--regAlg', '-a', type=str)
-parser.add_argument('--inputs', '-i', nargs='+', type=str, default=None)
-parser.add_argument('--reference', '-r', type=str, default=None)
 parser.add_argument('--device', '-d', type=str, default='0', 
                     help='used to set on which device the brain extraction will run. 0 for GPU, "cpu" for CPU.'
                     'Default is CPU.')
@@ -38,72 +35,62 @@ parser.add_argument('--outputExt', '-e', type=str, default='nrrd',
                     ' are: "nrrd", "nii", "nii.gz". Default = nrrd.')
  
 cliargs, unknown = parser.parse_known_args()
-inputs = cliargs.inputs
 multiTaskCount = cliargs.parallel
 regAlgPath = cliargs.regAlg
 structures = cliargs.structures
 features = cliargs.features
 outputExt = cliargs.outputExt
 device = cliargs.device
-reference = cliargs.reference
 
-# regAlgPath = '/home/fsforazz/git/MITK-superbuild/MITK-build/lib/mdra-D-0-13_MITK_MultiModal_rigid_default.so'
 ###############################################################################
 # general setup selectors for a more readable script
 ###############################################################################
 
-ReferenceImageSelector = ATS(reference)
+ReferenceImageSelector = ATS('CT')
 
 VoxelizerRefSelector = ATS('StructRef')
 VoxelizerStructSelector = ATS('StructSet')
+MovingImageSelector = ATS('MRI')
 
 ###############################################################################
 # the workflow itself
 ###############################################################################
-for i, im in enumerate(inputs):
+    
+with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
 
-    MovingImageSelector = ATS(im)
-    reg_actionTag = im+'_reg'
-    map_actionTag = im+'_mapped'
-    bet_actionTag = im+'_bet'
-    map_bet_actionTag = im+'_bet_mapped'
-    feature_actionTag = im+'_feature_ext'
-    
-    with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
-    
-        reg_Selector = matchR(
-            ReferenceImageSelector, MovingImageSelector, targetIsReference = False, algorithm=regAlgPath,
-            actionTag = reg_actionTag, scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-            
-        bet_Selector = brain_extraction(
-            MovingImageSelector, device=device,
-            actionTag = bet_actionTag, scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-    
-        mapped_moving_selector = mapR(
-            MovingImageSelector, reg_Selector, ReferenceImageSelector, actionTag=map_actionTag,
-            scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
+    reg_Selector = matchR(
+        ReferenceImageSelector, MovingImageSelector, targetIsReference=False, algorithm=regAlgPath,
+        actionTag='MRI_reg', scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
         
-        mask_selector = demux.getSelectors(artefactProps.RESULT_SUB_TAG, bet_Selector)['MASK']
-        mapped_bet_mask = mapR(
-            mask_selector, reg_Selector, ReferenceImageSelector, actionTag=map_bet_actionTag,
+    bet_Selector = brain_extraction(
+        MovingImageSelector, device=device,
+        actionTag='MRI_bet', scheduler=ThreadingScheduler(1)).do().tagSelector
+
+    mapped_moving_selector = mapR(
+        MovingImageSelector, reg_Selector, ReferenceImageSelector, actionTag='MRI_mapped',
+        scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
+    
+    mask_selector = demux.getSelectors(artefactProps.RESULT_SUB_TAG, bet_Selector)['MASK']
+    mapped_bet_mask = mapR(
+        mask_selector, reg_Selector, ReferenceImageSelector, interpolator = "nn", actionTag='MRI_bet_mapped',
+        scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
+    
+    voxelizer_selector = voxelizer(
+        VoxelizerStructSelector, VoxelizerRefSelector, structNames = structures,
+        booleanMask = True, actionTag='voxelizer', outputExt=outputExt,
+        scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+
+    if outputExt != 'nrrd':
+        map_mask2image_selector = mapR(
+            voxelizer_selector, templateSelector=ReferenceImageSelector, actionTag='map_mask2Ref',
             scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
-        
-        voxelizer_selector = voxelizer(
-            VoxelizerStructSelector, VoxelizerRefSelector, structNames = structures,
-            booleanMask = True, actionTag='voxelizer', outputExt=outputExt,
+
+        feature_Selector = feature_extraction(
+            mapped_moving_selector, map_mask2image_selector, same_tp=False, features=features,
+            actionTag='MRI_feature_ext',
             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-
-        if outputExt != 'nrrd':
-            map_mask2image_selector = mapR(
-                voxelizer_selector, templateSelector=mapped_moving_selector, actionTag='map_mask2image_{}'.format(i),
-                scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
- 
-            feature_Selector = feature_extraction(
-                mapped_moving_selector, map_mask2image_selector, features=features,
-                actionTag=feature_actionTag,
-                scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-        else:
-            feature_Selector = feature_extraction(
-                mapped_moving_selector, voxelizer_selector, features=features,
-                actionTag=feature_actionTag,
-                scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+    else:
+        feature_Selector = feature_extraction(
+            mapped_moving_selector, voxelizer_selector, features=features,
+            actionTag='MRI_feature_ext',
+            scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
