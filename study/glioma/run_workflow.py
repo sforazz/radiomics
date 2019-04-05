@@ -88,12 +88,12 @@ with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
 
     if outputExt != 'nrrd':
         map_mask2image_selector = mapR(
-            voxelizer_selector, templateSelector=mapped_moving_selector, actionTag='map_mask2Ref',
+            voxelizer_selector, templateSelector=ReferenceImageSelector, actionTag='map_mask2Ref',
             scheduler=ThreadingScheduler(multiTaskCount), interpolator = "nn", outputExt=outputExt).do().tagSelector
 
         feature_Selector = feature_extraction(
             mapped_moving_selector, map_mask2image_selector, features=features, resampling=resampling,
-            actionTag='MRI_feature_ext',
+            actionTag='MRI_feature_ext', same_tp=False,
             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
             
         feature_Selector_CT = feature_extraction(
@@ -104,7 +104,7 @@ with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
     else:
         feature_Selector = feature_extraction(
             mapped_moving_selector, voxelizer_selector, features=features, resampling=resampling,
-            actionTag='MRI_feature_ext',
+            actionTag='MRI_feature_ext', same_tp=False,
             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
         
         feature_Selector_CT = feature_extraction(

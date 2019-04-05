@@ -92,6 +92,6 @@ with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
     else:
         feature_Selector = feature_extraction(
-            mapped_moving_selector, voxelizer_selector, features=features,
+            mapped_moving_selector, voxelizer_selector, same_tp=False, features=features,
             actionTag='MRI_feature_ext',
             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
