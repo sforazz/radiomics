@@ -12,6 +12,8 @@ from core.pipelines.CLGlobalFeatures import FeatureExtractionBatchAction as feat
 import avid.common.artefact.defaultProps as artefactProps
 import avid.common.demultiplexer as demux
 from core.pipelines.bet import BrainExtractionBatchAction as brain_extraction
+import avid.common.artefact as artefact
+from avid.selectors import KeyValueSelector
 
 
 __this__ = sys.modules[__name__]
@@ -42,56 +44,58 @@ features = cliargs.features
 outputExt = cliargs.outputExt
 device = cliargs.device
 
+# artefact.similarityRelevantProperties.append('scan')
 ###############################################################################
 # general setup selectors for a more readable script
 ###############################################################################
-
+names = ['T1KM', 'T1', 'T2', 'FLAIR', 'ADC', 'SWI']
 ReferenceImageSelector = ATS('CT')
 
-VoxelizerRefSelector = ATS('StructRef')
-VoxelizerStructSelector = ATS('StructSet')
-MovingImageSelector = ATS('MRI')
+# VoxelizerRefSelector = ATS('StructRef')
+# VoxelizerStructSelector = ATS('StructSet')
+# MovingImageSelector = ATS('MRI') + KeyValueSelector('scan', 'T1KM')
 
 ###############################################################################
 # the workflow itself
 ###############################################################################
+for name in names:
+    MovingImageSelector = ATS('{}'.format(name))  
+    with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
     
-with workflow.initSession_byCLIargs(expandPaths=True, autoSave=True) as session:
-
-    reg_Selector = matchR(
-        ReferenceImageSelector, MovingImageSelector, targetIsReference=False, algorithm=regAlgPath,
-        actionTag='MRI_reg', scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+        reg_Selector = matchR(
+            ReferenceImageSelector, MovingImageSelector, targetIsReference=False, algorithm=regAlgPath,
+            actionTag='{}_MRI_reg'.format(name), scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+            
+    #     bet_Selector = brain_extraction(
+    #         MovingImageSelector, device=device,
+    #         actionTag='MRI_bet', scheduler=ThreadingScheduler(1)).do().tagSelector
+    
+        mapped_moving_selector = mapR(
+            MovingImageSelector, reg_Selector, ReferenceImageSelector, actionTag='{}_MRI_mapped'.format(name),
+            scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
         
-    bet_Selector = brain_extraction(
-        MovingImageSelector, device=device,
-        actionTag='MRI_bet', scheduler=ThreadingScheduler(1)).do().tagSelector
-
-    mapped_moving_selector = mapR(
-        MovingImageSelector, reg_Selector, ReferenceImageSelector, actionTag='MRI_mapped',
-        scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
+    #     mask_selector = demux.getSelectors(artefactProps.RESULT_SUB_TAG, bet_Selector)['MASK']
+    #     mapped_bet_mask = mapR(
+    #         mask_selector, reg_Selector, ReferenceImageSelector, interpolator = "nn", actionTag='MRI_bet_mapped',
+    #         scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
+        
+    #     voxelizer_selector = voxelizer(
+    #         VoxelizerStructSelector, VoxelizerRefSelector, structNames = structures,
+    #         booleanMask = True, actionTag='voxelizer', outputExt=outputExt,
+    #         scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
     
-    mask_selector = demux.getSelectors(artefactProps.RESULT_SUB_TAG, bet_Selector)['MASK']
-    mapped_bet_mask = mapR(
-        mask_selector, reg_Selector, ReferenceImageSelector, interpolator = "nn", actionTag='MRI_bet_mapped',
-        scheduler=ThreadingScheduler(multiTaskCount), outputExt=outputExt).do().tagSelector
-    
-    voxelizer_selector = voxelizer(
-        VoxelizerStructSelector, VoxelizerRefSelector, structNames = structures,
-        booleanMask = True, actionTag='voxelizer', outputExt=outputExt,
-        scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-
-    if outputExt != 'nrrd':
-        map_mask2image_selector = mapR(
-            voxelizer_selector, templateSelector=ReferenceImageSelector, interpolator = "nn",
-            actionTag='map_mask2Ref', scheduler=ThreadingScheduler(multiTaskCount),
-            outputExt=outputExt).do().tagSelector
-
-        feature_Selector = feature_extraction(
-            mapped_moving_selector, map_mask2image_selector, same_tp=False, features=features,
-            actionTag='MRI_feature_ext',
-            scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
-    else:
-        feature_Selector = feature_extraction(
-            mapped_moving_selector, voxelizer_selector, same_tp=False, features=features,
-            actionTag='MRI_feature_ext',
-            scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+    #     if outputExt != 'nrrd':
+    #         map_mask2image_selector = mapR(
+    #             voxelizer_selector, templateSelector=ReferenceImageSelector, interpolator = "nn",
+    #             actionTag='map_mask2Ref', scheduler=ThreadingScheduler(multiTaskCount),
+    #             outputExt=outputExt).do().tagSelector
+    # 
+    #         feature_Selector = feature_extraction(
+    #             mapped_moving_selector, map_mask2image_selector, same_tp=False, features=features,
+    #             actionTag='MRI_feature_ext',
+    #             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
+    #     else:
+    #         feature_Selector = feature_extraction(
+    #             mapped_moving_selector, voxelizer_selector, same_tp=False, features=features,
+    #             actionTag='MRI_feature_ext',
+    #             scheduler=ThreadingScheduler(multiTaskCount)).do().tagSelector
