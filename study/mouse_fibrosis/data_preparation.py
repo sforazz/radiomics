@@ -3,7 +3,7 @@ from core.converters.dicom import DicomConverter
 from core.utils.filemanip import batch_processing
 import os
 import argparse
-from core.process.preprocess import cropping, mouse_lung_data_preparation
+from core.process.preprocess import mouse_lung_data_preparation
 import shutil
 from core.converters.nrrd import NrrdConverter
 import glob

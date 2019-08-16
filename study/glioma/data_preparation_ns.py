@@ -4,6 +4,7 @@ import shutil
 from core.converters.dicom import DicomConverter
 import argparse
 from pathlib import Path
+import nibabel as nib
 
 
 IMAGE_TO_CHECK = ['CT', 'RTSTRUCT', 'MR_T1', 'MR_T1KM', 'MR_T2', 'MR_FLAIR']
@@ -14,7 +15,7 @@ def run_preparation(root, tempDir, convert_to='nrrd'):
     root = Path(root)
     tempDir = Path(tempDir)
     subjects = sorted([root/x for x in root.iterdir() if x.is_dir()])
-    
+
     for sub in subjects:
         print('\nProcessing subject {}'.format(sub))
         scans = {}
@@ -22,18 +23,6 @@ def run_preparation(root, tempDir, convert_to='nrrd'):
         if not os.path.isdir(tempDir / subName):
             for im_t in IMAGE_TO_CHECK: 
                 scans[im_t] = [x for x in sub.rglob('*.dcm') if x.parts[-3]==im_t]
-    #         for k in scans.keys(): 
-    #             if not scans[k] and k == 'RTSTRUCT': 
-    #                 scans[k] = [x for x in sub.rglob('*.dcm') if x.parts[-3]==k] 
-    #             elif not scans[k] and not k == 'RTSTRUCT': 
-    #                 scans[k] = [x for x in sub.rglob('*.dcm') if x.parts[-5]==k and x.parts[-3].split('_')[0]=='1']
-            
-    #         for k in scans.keys():
-    #             if scans[k] and not k == 'RTSTRUCT':
-    #                 series = sorted(list(set([x.parts[-3] for x in scans[k]])))
-    #                 if len(series) > 1:
-    #                     imgs = [x for x in scans[k] if x.parts[-3]==series[0]]
-    #                     scans[k] = imgs
     
             for scan in scans.keys():
                 images = scans[scan]
@@ -62,6 +51,26 @@ def run_preparation(root, tempDir, convert_to='nrrd'):
                             shutil.copy2(f, dirName)
         else:
             print('Subject already processed. Skipping')
+    
+    converted_files = [os.path.join(root, name) for root, _, files in os.walk(tempDir)
+            for name in files if name.endswith('.nii.gz')]
+    to_remove = []
+    for f in converted_files:
+        ref = nib.load(f)
+        data = ref.get_data()
+        if len(data.squeeze().shape) == 2 or len(data.squeeze().shape) > 4:
+            to_remove.append(f)
+        elif len(data.squeeze().shape) == 4:
+            im2save = nib.Nifti1Image(data[:, :, :, 0], affine=ref.affine)
+            nib.save(im2save, f)
+        if len(data.dtype) > 0:
+            print('{} is not a greyscale image. It will be removed.'.format(f))
+            to_remove.append(f)
+    
+    if to_remove:
+        for f in to_remove:
+            os.remove(f)
+            
 
 
 if __name__ == "__main__":
