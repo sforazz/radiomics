@@ -1,11 +1,11 @@
 #!/usr/bin/env python3.6
-from core.converters.dicom import DicomConverter
-from core.utils.filemanip import batch_processing
+from basecore.converters.dicom import DicomConverter
+from basecore.utils.filemanip import batch_processing
 import os
 import argparse
-from core.process.preprocess import mouse_lung_data_preparation
-from core.converters.nrrd import NrrdConverter
-from core.process.crop import ImageCropping
+from basecore.process.preprocess import dicom_check
+from basecore.converters.nrrd import NrrdConverter
+from basecore.process.crop import ImageCropping
 
 
 def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False, clean=False,
@@ -20,10 +20,10 @@ def mouse_fibrosis_data_preparation(input_data, root_path, work_dir, crop=False,
     for i, raw_data_folder in enumerate(raw_data):
         if raw_data_folder not in processed_subs:
             print('Processing subject {}\n'.format(raw_data_folder.split('/')[-1]))
-            filename, _, _ = mouse_lung_data_preparation(raw_data_folder, work_dir)
+            filename, _, _ = dicom_check(raw_data_folder, work_dir)
             if filename:
                 converter = DicomConverter(filename, clean=clean)
-                converted_data = converter.convert(convert_to='nrrd', method='mitk')
+                converted_data = converter.convert(convert_to='nifti_gz')
                 
                 if crop:
                     images = []
