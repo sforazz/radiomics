@@ -8,7 +8,7 @@ import nibabel as nib
 from sklearn.decomposition import FastICA
 import matplotlib.pyplot as plot
 from sklearn.cluster import KMeans
-from scipy.signal import find_peaks
+from gap_statistic import OptimalK
 
 
 def data_preparation(data_dir, reg_dir):
@@ -72,7 +72,7 @@ def ICA_calculation(tps_dict, ica_components):
 
     tc = np.asarray(tc)
     tc = tc.reshape(tc.shape[0]*tc.shape[1], tc.shape[2])
-    
+
     return tc, sm_path
 
 
@@ -104,11 +104,12 @@ def elbow_estimation(array, do_plot=True):
         plot.plot(ssd)
         plot.savefig('/home/fsforazz/Desktop/ssd.png')
         plot.close()
-    percentage_diff = [((ssd[i-1]-ssd[i])/ssd[i])*100 for i in range(1, len(ssd))]
-    peaks, _ = find_peaks(percentage_diff)
-    num_clusters = peaks[0]+2
+#     percentage_diff = [((ssd[i-1]-ssd[i])/ssd[i])*100 for i in range(1, len(ssd))]
+#     peaks, _ = find_peaks(percentage_diff)
+#     num_clusters = peaks[0]+2
+# 
+#     return num_clusters
 
-    return num_clusters
 
 def clustering(array, n_clusters):
 
@@ -191,18 +192,19 @@ def tp_0_clustering(image, gtv, pdf_info):
 
     gtv = nib.load(gtv).get_data()
     x, y, z = np.where(gtv == 1)
-    data = nib.load(image).get_data()
-    data = zscoring_image(data)
-    gtv_data = data[x, y, z]
-    cluster = np.zeros((gtv.shape+(len(pdf_info),)))
-    for i in range(x.shape[0]):
-        z_scores = [(gtv_data[i] - x[0])/x[1] for x in pdf_info]
-        index = np.where(np.abs(np.asarray(z_scores)) == np.min(np.abs(z_scores)))[0][0]
-        cluster[x[i], y[i], z[i], index] = 1
-    for i in range(cluster.shape[-1]):
-        outname = image.split('.nii.gz')[0]+'_cluster_{}.nii.gz'.format(i+1)
-        im2save = nib.Nifti1Image(cluster[:, :, :, i], affine=nib.load(image).affine)
-        nib.save(im2save, outname)
+    if x.any():
+        data = nib.load(image).get_data()
+        data = zscoring_image(data)
+        gtv_data = data[x, y, z]
+        cluster = np.zeros((gtv.shape+(len(pdf_info),)))
+        for i in range(x.shape[0]):
+            z_scores = [(gtv_data[i] - x[0])/x[1] for x in pdf_info]
+            index = np.where(np.abs(np.asarray(z_scores)) == np.min(np.abs(z_scores)))[0][0]
+            cluster[x[i], y[i], z[i], index] = 1
+        for i in range(cluster.shape[-1]):
+            outname = image.split('.nii.gz')[0]+'_cluster_{}.nii.gz'.format(i+1)
+            im2save = nib.Nifti1Image(cluster[:, :, :, i], affine=nib.load(image).affine)
+            nib.save(im2save, outname)
 #     for c, cluster in enumerate(pdf_info):
 #         mu = cluster[0]
 #         sigma = cluster[1]
@@ -234,10 +236,15 @@ with open(os.path.join(result_dir, 'spatial_map_paths.txt'), 'w') as f:
 # tc = np.load(os.path.join(result_dir, 'timecourses.npy'))
 # with open(os.path.join(result_dir, 'spatial_map_paths.txt'), 'r') as f:
 #     sm_path = [x.strip() for x in f]
-# elbow_estimation(tc, do_plot=True)
-labels, centroids = clustering(tc, 3)
+optimalK = OptimalK(n_jobs=2, parallel_backend='joblib')
+n_clusters = optimalK(tc, cluster_array=np.arange(1, 20))
+print('Optimal number of clusters: {}'.format(n_clusters))
+labels, centroids = clustering(tc, n_clusters)
 pdf_info = gl_distribution_calculation(labels, sm_path, tps_dict)
-tp_0_clustering(image, gtv, pdf_info)
+for sub in tps_dict:
+    image_path = tps_dict[sub][0]
+    gtv_path = os.path.join(gtv_dir, sub+'.nii.gz')
+    tp_0_clustering(image_path, gtv_path, pdf_info)
 save_clusters(labels, tc, centroids, sm_path, result_dir)
 
 print('Done!')
