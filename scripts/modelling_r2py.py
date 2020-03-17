@@ -4,8 +4,8 @@ from rpy2.robjects.vectors import DataFrame
 import rpy2.robjects as ro
 from rpy2.robjects.conversion import localconverter
 import numpy as np
-from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage
 import re
+from radiomics.r_wrapper import r_festures_selection, r_univariate, r_cox_model
 
 
 def converter(to_convert, r2pandas=True):
@@ -19,51 +19,10 @@ def converter(to_convert, r2pandas=True):
     return converted
 
 
-string_univariate=""" 
-    univariate_analysis <- function(DT, survObjT) { 
-    Nf <- 4 #Number of features to be selected for final model 
-    covariates <- colnames(DT) 
-    ##save each covariate as individial model formula 
-    univ_formulas <- 
-      sapply(covariates, function(x) 
-        as.formula(paste('survObjT ~', x))) 
-    ##create a cox-model for each individual feature 
-    univ_models <- 
-      lapply(univ_formulas, function(x) { 
-        coxph(x, data = DT) 
-      }) 
-    ## Calculate significance of each feature using the Wald test 
-    univ_results <- lapply(univ_models, function(x) { 
-      x <- summary(x) 
-      p.value <- signif(x$wald["pvalue"], digits = 2) 
-      beta <- signif(x$coef[1], digits = 2) 
-      #coeficient beta 
-      HR <- signif(x$coef[2], digits = 5) 
-      #exp(beta) 
-      HR.confint.lower <- signif(x$conf.int[, "lower .95"], 2) 
-      HR.confint.upper <- signif(x$conf.int[, "upper .95"], 2) 
-      wald.test <- paste0(signif(x$wald["test"], digits = 2), 
-                          " (", 
-                          HR.confint.lower, 
-                          "_", 
-                          HR.confint.upper, 
-                          ")") 
-      res <- c(beta, HR, wald.test, p.value) #save results 
-      names(res) <- c("beta", "HR", "wald.test", 
-                      "p.value") 
-      return(res) 
-    }) 
-    res <- t(as.data.frame(univ_results, check.names = FALSE)) 
-    univariate_results <- as.data.frame(res) 
-    } 
-"""  
-r_univariate = SignatureTranslatedAnonymousPackage(
-    string_univariate, "univariate_analysis")
-
 # dam = importr('dataAnalysisMisc')
 survival = importr('survival')
 Data = DataFrame.from_csvfile(
-    "/mnt/sdb/test_survival_R/GBM_TP0_T1KM_GTV/combined_csv_new_parfile_training.csv",
+    "/home/fsforazz/Desktop/test_survival_R/GBM_TP0_T1KM_GTV/combined_csv_new_parfile_training.csv",
     header=True, sep=',')
 Surv = survival.Surv
 surv_object = Surv(Data[1], Data[2])
@@ -110,11 +69,15 @@ while to_drop:
         to_remove = corr_index+[col_index]
     if to_remove:
         Data = Data[[c for c in Data if c not in to_remove]]
+        corr_matrix = Data.corr().abs()
+        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
+        to_drop = [column for column in upper.columns if any(upper[column] > 0.9)]
     else:
-        z = z+1
-    corr_matrix = Data.corr().abs()
-    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
-    to_drop = [column for column in upper.columns if any(upper[column] > 0.9)]
+        to_drop.remove(col_index)
 
+r_data = converter(Data, r2pandas=False)
+features = r_festures_selection.features_selection(r_data, surv_object)
+res = r_cox_model.cox_model(r_data, surv_object, features)
+res = converter(res)
 res = dam.plotForest(surv_object, data=r_sub_data)
 res = converter(sub_data)
