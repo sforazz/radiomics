@@ -1,6 +1,3 @@
-from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage
-
-
 string_univariate=""" 
     univariate_analysis <- function(DT, survObjT) { 
     Nf <- 4 #Number of features to be selected for final model 
@@ -79,16 +76,16 @@ univariate_results <- as.data.frame(res)
 
 ##remove all features that do not have a (highly) significant impact on OS, using p-value of 0.0005
 filtered_uv_results <-
-  univariate_results[as.numeric(as.character(univariate_results$p.value)) < 0.005, ]
+  univariate_results[as.numeric(sub(",", ".", as.character(univariate_results$p.value), fixed = TRUE)) < 0.005, ]
 ##If not enough highly significant features, then only select significant features (p<0.05)
 if (nrow(filtered_uv_results) < Nf) {
   filtered_uv_results <-
-    univariate_results[as.numeric(as.character(univariate_results$p.value)) < 0.05, ]
+    univariate_results[as.numeric(sub(",", ".", as.character(univariate_results$p.value), fixed = TRUE)) < 0.05, ]
 }
 ##use the Hazard ratio (HR) to select the top #Nf features for model building
 ## Extract hazard ratio
 HR <-
-  as.numeric(levels(filtered_uv_results$HR))[filtered_uv_results$HR]
+  as.numeric(sub(",", ".", levels(filtered_uv_results$HR), fixed = TRUE))[filtered_uv_results$HR]
 ## Create modified HR for ranking
 inverseHR <- function(x) {
   if (x < 1) {
@@ -143,13 +140,33 @@ sdf <- survdiff(survObjT ~ ModelStrataT)
 PvalT <- 1 - pchisq(sdf$chisq, length(sdf$n) - 1)
 
 KaplanMeierCurveT<-survfit(survObjT ~ ModelStrataT, data = nDataT)
+
+res = list(strata=ModelStrataT, km = KaplanMeierCurveT,  data = nDataT, surv_obj=survObjT)
+return(res)
 }
 """
-r_univariate = SignatureTranslatedAnonymousPackage(
-    string_univariate, "univariate_analysis")
 
-r_festures_selection = SignatureTranslatedAnonymousPackage(
-    string_fs, "features_selection")
-
-r_cox_model = SignatureTranslatedAnonymousPackage(
-    string_cox, "cox_model")
+string_survplot = """
+survival_plot <- ggsurvplot(
+  KaplanMeierCurveT,        # survfit object with calculated statistics.
+  data = nDataT,
+  pval = TRUE,              # show p-value of log-rank test.
+  xlim = c(0, 98),          # set x-axis limits
+  conf.int = TRUE,          # show confidence intervals for 
+  # point estimates of survival curves.
+  conf.int.style = "step",  # customize style of confidence intervals
+  xlab = "Time in months",  # customize X axis label.
+  break.time.by = 12,       # break X axis in time intervals.
+  ggtheme = theme_bw(),     # customize plot and risk table with a theme.
+  risk.table = "abs_pct",   # absolute number and percentage at risk.
+  risk.table.y.text.col = T,# colour risk table text annotations.
+  risk.table.y.text = FALSE,# show bars instead of names in text annotations
+  # in legend of risk table.
+  ncensor.plot = FALSE,      # plot the number of censored subjects at time t
+  surv.median.line = "hv",  # add the median survival pointer.
+  legend.labs = 
+    c("Group1", "Group2"),    # change legend labels.
+  palette = 
+    c("#E7B800", "#2E9FDF") # custom color palettes.
+)
+"""

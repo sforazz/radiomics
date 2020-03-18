@@ -1,11 +1,15 @@
-from rpy2.robjects import r, pandas2ri
+from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import DataFrame
 import rpy2.robjects as ro
 from rpy2.robjects.conversion import localconverter
 import numpy as np
 import re
-from radiomics.r_wrapper import r_festures_selection, r_univariate, r_cox_model
+from radiomics.r_wrapper import (
+    string_cox, string_fs, string_univariate,
+    string_survplot)
+import rpy2.robjects as robjects
+from rpy2.robjects.packages import SignatureTranslatedAnonymousPackage
 
 
 def converter(to_convert, r2pandas=True):
@@ -19,10 +23,25 @@ def converter(to_convert, r2pandas=True):
     return converted
 
 
-# dam = importr('dataAnalysisMisc')
+dam = importr('dataAnalysisMisc')
 survival = importr('survival')
+rms = importr('rms')
+ggplot = importr('ggplot2')
+survminer = importr('survminer')
+caret = importr('caret')
+glmnet = importr('glmnet')
+
+r_univariate = SignatureTranslatedAnonymousPackage(
+    string_univariate, "univariate_analysis")
+
+r_festures_selection = SignatureTranslatedAnonymousPackage(
+    string_fs, "features_selection")
+
+r_cox_model = SignatureTranslatedAnonymousPackage(
+    string_cox, "cox_model")
+
 Data = DataFrame.from_csvfile(
-    "/home/fsforazz/Desktop/test_survival_R/GBM_TP0_T1KM_GTV/combined_csv_new_parfile_training.csv",
+    "/mnt/sdb/test_survival_R/GBM_TP0_T1KM_GTV/combined_csv_new_parfile_training.csv",
     header=True, sep=',')
 Surv = survival.Surv
 surv_object = Surv(Data[1], Data[2])
@@ -41,8 +60,9 @@ while to_drop:
     r_sub_data = converter(sub_data, r2pandas=False)
     res = r_univariate.univariate_analysis(r_sub_data, surv_object)
     res = converter(res)
-    hr = [key for key, value in res['HR'].items() if not (np.abs(float(value)) > 0.5 and np.abs(float(value)) < 1.5)
-          and not np.abs(float(value)) > 10]
+    hr = [key for key, value in res['HR'].items()
+          if not (np.abs(float(value.replace(',', '.'))) > 0.5 and np.abs(float(value.replace(',', '.'))) < 1.5)
+          and not np.abs(float(value.replace(',', '.'))) > 10]
     if hr:
         if len(hr) < len(corr_index+[col_index]):
             to_remove = to_remove + [x for x in corr_index+[col_index] if x not in hr]
@@ -50,15 +70,15 @@ while to_drop:
                 for key, value in res['wald.test'].items() if key in hr]
         for wald_range in wald:
             key, low, high = wald_range
-            if float(low) < 0.9 and float(high) > 1.1:
+            if float(low.replace(',', '.')) < 0.9 and float(high.replace(',', '.')) > 1.1:
                 to_remove.append(key)
             else:
                 pval_check.append(key)
         if pval_check:
             p_values = [[key, value] for key, value in res['p.value'].items()
-                        if key in pval_check and float(value) < 0.1]
+                        if key in pval_check and float(value.replace(',', '.')) < 0.1]
             if p_values and len(p_values) > 1:
-                values = [float(x[1]) for x in p_values]
+                values = [float(x[1].replace(',', '.')) for x in p_values]
                 min_pval = np.min(values)
                 temp_to_remove = [p_values[i][0] for i, val in enumerate(values)
                                   if val != min_pval]
@@ -77,7 +97,15 @@ while to_drop:
 
 r_data = converter(Data, r2pandas=False)
 features = r_festures_selection.features_selection(r_data, surv_object)
-res = r_cox_model.cox_model(r_data, surv_object, features)
-res = converter(res)
-res = dam.plotForest(surv_object, data=r_sub_data)
-res = converter(sub_data)
+KM_object = r_cox_model.cox_model(r_data, surv_object, features)
+robjects.globalenv["nDataT"] = KM_object.rx("data")[0]
+robjects.globalenv["KaplanMeierCurveT"] = KM_object.rx("km")[0]
+robjects.globalenv["ModelStrataT"] = KM_object.rx("strata")[0] 
+robjects.globalenv["survObjT"] = KM_object.rx("surv_obj")[0]
+r_survplot = SignatureTranslatedAnonymousPackage(
+    string_survplot, "survival_plot")
+res = r_survplot.survival_plot
+ggplot.ggsave('test2.png', res[0])
+# res = converter(res)
+# res = dam.plotForest(surv_object, data=r_sub_data)
+# res = converter(sub_data)
