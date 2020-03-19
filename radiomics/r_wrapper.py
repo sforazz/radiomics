@@ -39,7 +39,7 @@ string_univariate="""
 
 string_fs = """
 features_selection <- function(DT, survObjT) { 
-Nf <- 24 #Number of features to be selected for final model
+Nf <- 23 #Number of features to be selected for final model
 covariates <- colnames(DT)
 ##save each covariate as individial model formula
 univ_formulas <-
@@ -169,4 +169,20 @@ survival_plot <- ggsurvplot(
   palette = 
     c("#E7B800", "#2E9FDF") # custom color palettes.
 )
+"""
+
+
+string_subsample = """
+subsample <- function(DT, OST, CST, features) { 
+nDataT = DT[features]
+
+DT.cox <- nDataT
+DT.cox$OST = OST
+DT.cox$CST = CST
+# specifiy the resampling tech, k-fold cross validation
+ss = makeResampleDesc("Subsample", iters=500, split=6/7)
+cox.task = makeSurvTask(data=DT.cox, target=c("OST", "CST"))
+cox.lrn <- makeLearner("surv.coxph")
+cox.kFoldCV = resample(learner=cox.lrn, cox.task, ss, show.info=FALSE, models=TRUE)
+}
 """
