@@ -73,7 +73,7 @@ def converter(to_convert, r2pandas=True):
     return converted
 
 
-dam = importr('dataAnalysisMisc')
+# dam = importr('dataAnalysisMisc')
 survival = importr('survival')
 rms = importr('rms')
 ggplot = importr('ggplot2')
@@ -95,15 +95,16 @@ r_subsample = SignatureTranslatedAnonymousPackage(
     string_subsample, "subsample")
 
 accurate_drop = True
-correlation_th = 0.9
+# correlation_th = 0.9
+thresholds = [0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
 z_scoring = True
 log_scale = True
 
 Data = DataFrame.from_csvfile(
-    "/mnt/sdb/test_survival_R/GBM_TP0_T1KM_GTV/combined_csv_new_parfile_training.csv",
+    "/home/fsforazz/Desktop/test_survival_R/GBM_TP0_T1KM_GTV/combined_csv_new_parfile_training.csv",
     header=True, sep=',')
 orig_data = DataFrame.from_csvfile(
-    "/mnt/sdb/test_survival_R/GBM_TP0_T1KM_GTV/combined_csv_new_parfile_training.csv",
+    "/home/fsforazz/Desktop/test_survival_R/GBM_TP0_T1KM_GTV/combined_csv_new_parfile_training.csv",
     header=True, sep=',')
 
 Surv = survival.Surv
@@ -124,29 +125,36 @@ elif log_scale and z_scoring:
         Data[col] = np.log10(Data[col]+1-Data[col].min())
     Data[zscore_col_names] = (Data[zscore_col_names] - Data[zscore_col_names].mean(axis=0))/Data[zscore_col_names].std(axis=0)
 
-corr_matrix = Data.corr().abs()
-upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
-to_drop = [column for column in upper.columns if any(upper[column] > correlation_th)]
-
-if accurate_drop:
-    Data = drop_hihgly_corr(Data, to_drop, upper, correlation_th)
-else:
-    Data = Data.drop(Data[to_drop], axis=1)
-
-r_data = converter(Data, r2pandas=False)
-features = r_festures_selection.features_selection(r_data, surv_object)
-KM_object = r_cox_model.cox_model(r_data, surv_object, features)
-robjects.globalenv["nDataT"] = KM_object.rx("data")[0]
-robjects.globalenv["KaplanMeierCurveT"] = KM_object.rx("km")[0]
-robjects.globalenv["ModelStrataT"] = KM_object.rx("strata")[0] 
-robjects.globalenv["survObjT"] = KM_object.rx("surv_obj")[0]
-subsample = r_subsample.subsample(r_data, orig_data[1], orig_data[2], features)
-c_index = subsample[5]
-print(c_index)
-r_survplot = SignatureTranslatedAnonymousPackage(
-    string_survplot, "survival_plot")
-res = r_survplot.survival_plot
-ggplot.ggsave('test2.png', res[0])
+normalized_data = Data.copy()
+cis = []
+for correlation_th in thresholds:
+    corr_matrix = normalized_data.corr().abs()
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
+    to_drop = [column for column in upper.columns if any(upper[column] > correlation_th)]
+    
+    if accurate_drop:
+        Data = drop_hihgly_corr(normalized_data, to_drop, upper, correlation_th)
+    else:
+        Data = normalized_data.drop(normalized_data[to_drop], axis=1)
+    
+    r_data = converter(Data, r2pandas=False)
+    features = r_festures_selection.features_selection(r_data, surv_object)
+    features = ro.r("na.omit")(features)
+    print('Number of features selected: {}'.format(len(features)))
+    KM_object = r_cox_model.cox_model(r_data, surv_object, features)
+    robjects.globalenv["nDataT"] = KM_object.rx("data")[0]
+    robjects.globalenv["KaplanMeierCurveT"] = KM_object.rx("km")[0]
+    robjects.globalenv["ModelStrataT"] = KM_object.rx("strata")[0] 
+    robjects.globalenv["survObjT"] = KM_object.rx("surv_obj")[0]
+    subsample = r_subsample.subsample(r_data, orig_data[1], orig_data[2], features)
+    c_index = subsample[5]
+    print(c_index)
+    cis.append(c_index)
+# r_survplot = SignatureTranslatedAnonymousPackage(
+#     string_survplot, "survival_plot")
+# res = r_survplot.survival_plot
+# ggplot.ggsave('test2.png', res[0])
 # res = converter(res)
 # res = dam.plotForest(surv_object, data=r_sub_data)
 # res = converter(sub_data)
+print('Done!')
