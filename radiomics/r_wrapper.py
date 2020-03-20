@@ -38,8 +38,8 @@ string_univariate="""
 """
 
 string_fs = """
-features_selection <- function(DT, survObjT) { 
-Nf <- 23 #Number of features to be selected for final model
+features_selection <- function(DT, survObjT, max_features) { 
+Nf <- max_features #Number of features to be selected for final model
 covariates <- colnames(DT)
 ##save each covariate as individial model formula
 univ_formulas <-
@@ -184,5 +184,81 @@ ss = makeResampleDesc("Subsample", iters=500, split=6/7)
 cox.task = makeSurvTask(data=DT.cox, target=c("OST", "CST"))
 cox.lrn <- makeLearner("surv.coxph")
 cox.kFoldCV = resample(learner=cox.lrn, cox.task, ss, show.info=FALSE, models=TRUE)
+}
+"""
+
+
+string_repcv = """
+rep_cv <- function(DT, OST, CST, features) { 
+nDataT = DT[features]
+
+DT.cox <- nDataT
+DT.cox$OST = OST
+DT.cox$CST = CST
+# specifiy the resampling tech, k-fold cross validation
+ss = makeResampleDesc("RepCV", folds = 7, reps =200)
+cox.task = makeSurvTask(data=DT.cox, target=c("OST", "CST"))
+cox.lrn <- makeLearner("surv.coxph")
+cox.kFoldCV = resample(learner=cox.lrn, cox.task, ss, show.info=FALSE, models=TRUE)
+}
+"""
+
+string_lasso = """
+lasso <- function(DT, survObjT) {
+x = as.matrix(DT)
+
+## Run the code below to load the function into workspace. This function performs a #nrep repeated 10-fold
+## cross-validation, which is intended to stabilize the method and to find the optimal lambda with the smallest error.
+glmnet.repcv <- function(x,survObjT,nreps,measure = c("mse", "deviance", "class", "auc", "mae"),
+                         family=c("gaussian","binomial","poisson","multinomial","cox","mgaussian"),pen){
+  CVMs <- NULL
+  CVSDs <- NULL
+  dfmax = 5 #set the maximum number of degrees-of-freedom
+  measure = match.arg(measure)
+  lambda.mins <- NULL #list of minimum error lambdas
+  lambda.1ses <- NULL #list of 1se lambdas
+  for (i in 1:nreps){
+    if (missing(pen))
+      ##perform 1 cross-validation (default: 10 folds)
+      cv <- cv.glmnet(x,survObjT,alpha=1,family=family,type.measure=measure,dfmax=dfmax)
+    else
+      ##perform 1 cross-validation (default: 10 folds)
+      cv <- cv.glmnet(x,survObjT,alpha=1,family=family,type.measure=measure,penalty.factor=pen,dfmax=dfmax)
+    CVMs  <- qpcR:::cbind.na(CVMs,  cv$cvm) #store partial likelihood deviances
+    CVSDs <- qpcR:::cbind.na(CVSDs, cv$cvsd) #store standard errors
+    lambda.mins = c(lambda.mins,cv$lambda.min) #store lambda.min for each run
+    lambda.1ses = c(lambda.1ses,cv$lambda.1se) #store lambda.1se for each run
+  }
+  rownames(CVMs) <- cv$glmnet.fit$lambda[1:nrow(CVMs)]; colnames(CVMs) <- NULL;
+  mean.CVMs = rowMeans(CVMs,na.rm=TRUE)
+  mean.CVSDs = rowMeans(CVSDs,na.rm=TRUE)
+  if (measure=="auc")
+    lambda.min.index = which.max(mean.CVMs) #max mean AUC
+  else
+    lambda.min.index = which.min(mean.CVMs) #min mean error
+  
+  lambda.min <- as.numeric(sub(",", ".", names(lambda.min.index), fixed = TRUE))
+  if (measure=="auc")
+    ## which.max returns the first TRUE
+    lambda.1se.index = which.max(mean.CVMs > max(mean.CVMs)-mean.CVSDs[lambda.min.index])
+  else
+    ## which.max returns the first TRUE
+    lambda.1se.index = which.max(mean.CVMs < min(mean.CVMs)+mean.CVSDs[lambda.min.index])
+  lambda.1se <- as.numeric(sub(",", ".", names(lambda.1se.index), fixed = TRUE))
+  return(list(lambda.min = lambda.min,lambda.1se = lambda.1se, glmnet.fit = cv$glmnet.fit))
+}
+
+## Run #nrep repeated 10-fold CV
+nrep = 200 #number of repetitions for repeated cross-validation
+measure = "deviance" # partial-likelihood for the Cox model
+family  = "cox" # cox model for survival
+glmnetSTRUCT = list()
+glmnetSTRUCT$glmnet = glmnet.repcv(x,survObjT,nrep,measure=measure,family=family) # x = variables, y = outcome
+
+## Store selected features for reference: lambda.min is the value of lambda that gives minimum mean-cross-validated error
+glmnetSTRUCT$selection = coef(glmnetSTRUCT$glmnet$glmnet.fit,s=glmnetSTRUCT$glmnet$lambda.min) # selected features
+glmnetSTRUCT$selection = glmnetSTRUCT$selection[which(glmnetSTRUCT$selection!=0),] # selected features + coefficients
+glmnetSTRUCT$selection #print selected features + coefficients
+features = names(glmnetSTRUCT$selection) # save selected features
 }
 """
