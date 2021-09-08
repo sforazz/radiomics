@@ -9,7 +9,7 @@ networkx==2.2
 nibabel==2.3.3
 numpy==1.16.0
 pandas==0.24.0
-Pillow==5.4.1
+Pillow==8.3.2
 pydicom==1.2.2
 pynrrd==0.3.6
 pyparsing==2.3.1
